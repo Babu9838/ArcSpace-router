@@ -10,12 +10,43 @@
 <style>
 body{margin:0;font-family:Arial;background:#0b0f19;color:white}
 .container{padding:15px}
-.card{background:#111827;padding:15px;border-radius:12px;margin:10px 0}
-input,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:none}
-button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:white;cursor:pointer;margin-top:8px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:768px){.grid{grid-template-columns:1fr}}
-.small{opacity:0.7}
+
+.card{
+  background:#111827;
+  padding:15px;
+  border-radius:12px;
+  margin:10px 0;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+@media(max-width:768px){
+  .grid{grid-template-columns:1fr}
+}
+
+input,select{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border-radius:8px;
+  border:none;
+}
+
+button{
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:#4f46e5;
+  color:white;
+  cursor:pointer;
+  margin-top:8px;
+}
+
+.small{opacity:0.7;font-size:12px}
 </style>
 </head>
 
@@ -34,11 +65,11 @@ button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:white
 <!-- NETWORK -->
 <div class="card">
   <h3>Network Switch</h3>
-  <select id="network" onchange="switchNetwork()">
-    <option value="0xA1B2C3">Arc Testnet</option>
-    <option value="0x1">Ethereum</option>
-    <option value="0xaa36a7">Sepolia</option>
-    <option value="0xa4b1">Arbitrum</option>
+  <select id="network">
+    <option>Arc Testnet</option>
+    <option>Ethereum</option>
+    <option>Sepolia</option>
+    <option>Arbitrum</option>
   </select>
 </div>
 
@@ -57,23 +88,83 @@ button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:white
 <!-- TOKEN TRANSFER -->
 <div class="card">
   <h3>Token Transfer</h3>
-
   <select id="token">
     <option>USDC</option>
     <option>EURC</option>
     <option>cirBTC</option>
   </select>
 
-  <input id="to" placeholder="Receiver Address">
+  <input id="to" placeholder="Receiver">
   <input id="amount" placeholder="Amount">
 
   <button onclick="sendToken()">Send</button>
 </div>
 
-<!-- TX -->
+<!-- SWAP -->
 <div class="card">
-  <h3>Transaction</h3>
-  <p id="tx">No transaction</p>
+  <h3>Swap</h3>
+  <select>
+    <option>USDC</option>
+    <option>EURC</option>
+    <option>cirBTC</option>
+  </select>
+
+  <input placeholder="Amount">
+  <button>Swap</button>
+</div>
+
+<!-- BRIDGE -->
+<div class="card">
+  <h3>Bridge</h3>
+  <select>
+    <option>Arc → Ethereum</option>
+    <option>Ethereum → Arbitrum</option>
+    <option>Arc → Sepolia</option>
+  </select>
+
+  <input placeholder="Amount">
+  <button>Bridge</button>
+</div>
+
+<!-- LIQUIDITY -->
+<div class="card">
+  <h3>Liquidity</h3>
+
+  <div class="grid">
+    <div>
+      <h4>Add Liquidity</h4>
+      <input placeholder="Token A">
+      <input placeholder="Token B">
+      <button>Add</button>
+    </div>
+
+    <div>
+      <h4>Remove Liquidity</h4>
+      <input placeholder="LP Token">
+      <button>Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAKE -->
+<div class="card">
+  <h3>Stake</h3>
+  <input placeholder="Amount">
+  <button>Stake</button>
+</div>
+
+<!-- ANALYTICS -->
+<div class="card">
+  <h3>Analytics</h3>
+  <canvas id="chart" width="300" height="120"></canvas>
+</div>
+
+<!-- SOCIAL -->
+<div class="card">
+  <h3>Social Connect</h3>
+  <button>Twitter</button>
+  <button>Discord</button>
+  <button>GitHub</button>
 </div>
 
 </div>
@@ -84,7 +175,6 @@ let provider;
 let signer;
 let user;
 
-// token addresses (replace with real ones later)
 const TOKENS = {
   USDC:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   EURC:"0x0000000000000000000000000000000000000000",
@@ -98,7 +188,6 @@ const ABI = [
 
 // CONNECT
 async function connectWallet(){
-
   if(!window.ethereum){
     alert("Install MetaMask");
     return;
@@ -111,101 +200,54 @@ async function connectWallet(){
 
   document.getElementById("wallet").innerText = user;
 
-  loadAllBalances();
+  loadBalances();
 }
 
-// SWITCH NETWORK
-async function switchNetwork(){
-  const chainId = document.getElementById("network").value;
+// BALANCES
+async function loadBalances(){
 
-  try{
-    await window.ethereum.request({
-      method:"wallet_switchEthereumChain",
-      params:[{chainId}]
-    });
-  }catch(e){
-    alert("Network switch failed");
-  }
-}
-
-// LOAD ALL BALANCES
-async function loadAllBalances(){
-
-  // ETH balance
   const ethBal = await provider.getBalance(user);
   document.getElementById("eth").innerText =
     "ETH: " + ethers.formatEther(ethBal);
 
-  // USDC / EURC / BTC
-  await loadToken("USDC","usdc",6);
-  await loadToken("EURC","eurc",6);
-  await loadToken("cirBTC","btc",6);
+  loadToken("USDC","usdc");
+  loadToken("EURC","eurc");
+  loadToken("cirBTC","btc");
 }
 
-// LOAD TOKEN BALANCE
-async function loadToken(symbol, id, decimals){
-
+async function loadToken(symbol,id){
   try{
-
-    const contract = new ethers.Contract(
-      TOKENS[symbol],
-      ABI,
-      provider
-    );
-
-    const bal = await contract.balanceOf(user);
-
+    const c = new ethers.Contract(TOKENS[symbol],ABI,provider);
+    const b = await c.balanceOf(user);
     document.getElementById(id).innerText =
-      ethers.formatUnits(bal, decimals);
-
+      ethers.formatUnits(b,6);
   }catch(e){
-
-    document.getElementById(id).innerText = "0";
-
+    document.getElementById(id).innerText="0";
   }
 }
 
 // SEND TOKEN
 async function sendToken(){
+  const token=document.getElementById("token").value;
+  const to=document.getElementById("to").value;
+  const amount=document.getElementById("amount").value;
 
-  const token = document.getElementById("token").value;
-  const to = document.getElementById("to").value;
-  const amount = document.getElementById("amount").value;
+  const c=new ethers.Contract(TOKENS[token],ABI,signer);
 
-  if(!to || !amount){
-    alert("Fill all fields");
-    return;
-  }
+  const tx=await c.transfer(to,ethers.parseUnits(amount,6));
+  await tx.wait();
 
-  try{
-
-    const contract = new ethers.Contract(
-      TOKENS[token],
-      ABI,
-      signer
-    );
-
-    const tx = await contract.transfer(
-      to,
-      ethers.parseUnits(amount, 6)
-    );
-
-    document.getElementById("tx").innerText =
-      "Pending: " + tx.hash;
-
-    await tx.wait();
-
-    document.getElementById("tx").innerText =
-      "Success: " + tx.hash;
-
-    loadAllBalances();
-
-  }catch(err){
-    console.log(err);
-    document.getElementById("tx").innerText =
-      "Failed";
-  }
+  alert("Success: "+tx.hash);
+  loadBalances();
 }
+
+// SIMPLE CHART
+const c=document.getElementById("chart");
+const ctx=c.getContext("2d");
+ctx.fillStyle="#4f46e5";
+ctx.fillRect(20,60,40,40);
+ctx.fillRect(80,30,40,70);
+ctx.fillRect(140,50,40,50);
 
 </script>
 
