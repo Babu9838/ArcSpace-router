@@ -1,0 +1,98 @@
+{
+  "appName": "ArcSpace PRO",
+  "theme": {
+    "darkMode": true,
+    "primaryColor": "#4f46e5",
+    "background": "#0b0f19",
+    "card": "#111827"
+  },
+
+  "wallet": {
+    "enabled": true,
+    "type": "MetaMask",
+    "provider": "ethers",
+    "features": [
+      "connect",
+      "getAddress",
+      "getBalance"
+    ]
+  },
+
+  "network": {
+    "enabled": true,
+    "default": "ethereum",
+    "options": [
+      {
+        "name": "Ethereum",
+        "chainId": "0x1"
+      },
+      {
+        "name": "Sepolia",
+        "chainId": "0xaa36a7"
+      },
+      {
+        "name": "Arbitrum",
+        "chainId": "0xa4b1"
+      }
+    ]
+  },
+
+  "balance": {
+    "enabled": true,
+    "type": "native",
+    "symbol": "ETH",
+    "liveUpdate": true
+  },
+
+  "tokens": {
+    "enabled": true,
+    "standard": "ERC20",
+    "list": [
+      {
+        "symbol": "USDC",
+        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "decimals": 6
+      },
+      {
+        "symbol": "EURC",
+        "address": "0x0000000000000000000000000000000000000000",
+        "decimals": 6
+      },
+      {
+        "symbol": "cirBTC",
+        "address": "0x0000000000000000000000000000000000000000",
+        "decimals": 6
+      }
+    ]
+  },
+
+  "transfer": {
+    "enabled": true,
+    "type": "ERC20_TRANSFER",
+    "function": "transfer",
+    "fields": [
+      "token",
+      "receiver",
+      "amount"
+    ]
+  },
+
+  "transactions": {
+    "enabled": true,
+    "tracking": true,
+    "showHash": true,
+    "status": ["pending", "success", "failed"]
+  },
+
+  "ui": {
+    "layout": "dashboard",
+    "responsive": true,
+    "cards": [
+      "wallet",
+      "network",
+      "balance",
+      "transfer",
+      "transactions"
+    ]
+  }
+}
