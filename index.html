@@ -13,6 +13,9 @@ body{margin:0;font-family:Arial;background:#0b0f19;color:white}
 .card{background:#111827;padding:15px;border-radius:12px;margin:10px 0}
 input,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:none}
 button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:white;cursor:pointer;margin-top:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:768px){.grid{grid-template-columns:1fr}}
+.small{opacity:0.7}
 </style>
 </head>
 
@@ -28,29 +31,30 @@ button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:white
   <p id="wallet">Not Connected</p>
 </div>
 
-<!-- NETWORK SWITCH -->
+<!-- NETWORK -->
 <div class="card">
   <h3>Network Switch</h3>
-
   <select id="network" onchange="switchNetwork()">
-
-    <!-- NEW ARC TESTNET ADDED -->
     <option value="0xA1B2C3">Arc Testnet</option>
-
-    <option value="0x1">Ethereum Mainnet</option>
-    <option value="0xaa36a7">Sepolia Testnet</option>
-    <option value="0xa4b1">Arbitrum One</option>
-
+    <option value="0x1">Ethereum</option>
+    <option value="0xaa36a7">Sepolia</option>
+    <option value="0xa4b1">Arbitrum</option>
   </select>
 </div>
 
-<!-- BALANCE -->
+<!-- UNIFIED BALANCE -->
 <div class="card">
   <h3>Unified Balance</h3>
-  <p id="balance">0 ETH</p>
+  <p id="eth">ETH: 0</p>
+
+  <div class="grid">
+    <div class="card">USDC<br><b id="usdc">0</b></div>
+    <div class="card">EURC<br><b id="eurc">0</b></div>
+    <div class="card">cirBTC<br><b id="btc">0</b></div>
+  </div>
 </div>
 
-<!-- TRANSFER -->
+<!-- TOKEN TRANSFER -->
 <div class="card">
   <h3>Token Transfer</h3>
 
@@ -68,8 +72,8 @@ button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:white
 
 <!-- TX -->
 <div class="card">
-  <h3>Transaction Status</h3>
-  <p id="tx">No transaction yet</p>
+  <h3>Transaction</h3>
+  <p id="tx">No transaction</p>
 </div>
 
 </div>
@@ -80,7 +84,7 @@ let provider;
 let signer;
 let user;
 
-// token placeholders
+// token addresses (replace with real ones later)
 const TOKENS = {
   USDC:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   EURC:"0x0000000000000000000000000000000000000000",
@@ -88,11 +92,13 @@ const TOKENS = {
 };
 
 const ABI = [
-  "function transfer(address to, uint amount) returns (bool)"
+  "function transfer(address to, uint amount) returns (bool)",
+  "function balanceOf(address) view returns (uint)"
 ];
 
-// CONNECT WALLET
+// CONNECT
 async function connectWallet(){
+
   if(!window.ethereum){
     alert("Install MetaMask");
     return;
@@ -105,53 +111,57 @@ async function connectWallet(){
 
   document.getElementById("wallet").innerText = user;
 
-  loadBalance();
+  loadAllBalances();
 }
 
-// BALANCE
-async function loadBalance(){
-  const bal = await provider.getBalance(user);
-  document.getElementById("balance").innerText =
-    ethers.formatEther(bal) + " ETH";
-}
-
-// NETWORK SWITCH (UPDATED WITH ARC TESTNET SUPPORT)
+// SWITCH NETWORK
 async function switchNetwork(){
-
   const chainId = document.getElementById("network").value;
 
   try{
-
     await window.ethereum.request({
       method:"wallet_switchEthereumChain",
       params:[{chainId}]
     });
+  }catch(e){
+    alert("Network switch failed");
+  }
+}
 
-  }catch(err){
+// LOAD ALL BALANCES
+async function loadAllBalances(){
 
-    // if network not added (Arc Testnet case)
-    if(chainId === "0xA1B2C3"){
+  // ETH balance
+  const ethBal = await provider.getBalance(user);
+  document.getElementById("eth").innerText =
+    "ETH: " + ethers.formatEther(ethBal);
 
-      try{
-        await window.ethereum.request({
-          method:"wallet_addEthereumChain",
-          params:[{
-            chainId: "0xA1B2C3",
-            chainName: "Arc Testnet",
-            nativeCurrency:{
-              name:"ARC",
-              symbol:"ARC",
-              decimals:18
-            },
-            rpcUrls:["https://rpc.arc-testnet.io"], 
-            blockExplorerUrls:["https://explorer.arc-testnet.io"]
-          }]
-        });
+  // USDC / EURC / BTC
+  await loadToken("USDC","usdc",6);
+  await loadToken("EURC","eurc",6);
+  await loadToken("cirBTC","btc",6);
+}
 
-      }catch(e){
-        alert("Arc Testnet add failed");
-      }
-    }
+// LOAD TOKEN BALANCE
+async function loadToken(symbol, id, decimals){
+
+  try{
+
+    const contract = new ethers.Contract(
+      TOKENS[symbol],
+      ABI,
+      provider
+    );
+
+    const bal = await contract.balanceOf(user);
+
+    document.getElementById(id).innerText =
+      ethers.formatUnits(bal, decimals);
+
+  }catch(e){
+
+    document.getElementById(id).innerText = "0";
+
   }
 }
 
@@ -188,10 +198,12 @@ async function sendToken(){
     document.getElementById("tx").innerText =
       "Success: " + tx.hash;
 
+    loadAllBalances();
+
   }catch(err){
     console.log(err);
     document.getElementById("tx").innerText =
-      "Failed Transaction";
+      "Failed";
   }
 }
 
