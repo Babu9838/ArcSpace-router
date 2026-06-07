@@ -1,113 +1,58 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ArcSpace Dashboard</title>
+<title>ArcSpace PRO MultiChain</title>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+<!-- WalletConnect V2 -->
+<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
 
 <style>
-body {
-  margin:0;
-  font-family: Arial;
-  background:#0b0f19;
-  color:white;
-  transition:0.3s;
-}
-
-.light {
-  background:#f4f6ff;
-  color:#111;
-}
-
-.nav {
-  display:flex;
-  justify-content:space-between;
-  padding:15px;
-  background:#111827;
-}
-
-.card {
-  background:#111827;
-  padding:15px;
-  margin:10px;
-  border-radius:12px;
-}
-
-.light .card {
-  background:white;
-}
-
-button {
-  padding:8px 12px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.btn {
-  background:#4f46e5;
-  color:white;
-}
-
-.grid {
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-}
-
-@media(max-width:768px){
-  .grid{grid-template-columns:1fr;}
-}
-
-input, select {
-  width:100%;
-  padding:8px;
-  margin-top:5px;
-}
-
-.small {
-  font-size:12px;
-  opacity:0.7;
-}
+body{margin:0;font-family:Arial;background:#0b0f19;color:white}
+.container{padding:15px}
+.card{background:#111827;padding:15px;border-radius:12px;margin:10px 0}
+input,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:none}
+button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:white;cursor:pointer;margin-top:8px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:768px){.row{grid-template-columns:1fr}}
+.small{opacity:0.7;font-size:12px}
 </style>
 </head>
 
 <body>
 
-<!-- NAVBAR -->
-<div class="nav">
-  <div><b>🚀 ArcSpace</b></div>
+<div class="container">
 
-  <div>
-    <button onclick="toggleDark()">🌙</button>
-    <button class="btn" onclick="connectWallet()">Wallet Connect</button>
-  </div>
+<h2>🚀 ArcSpace PRO MultiChain Wallet</h2>
+
+<!-- WALLET -->
+<div class="card">
+  <button onclick="connectMetaMask()">MetaMask Connect</button>
+  <button onclick="connectWalletConnect()">WalletConnect</button>
+
+  <p id="wallet">Not Connected</p>
 </div>
 
 <!-- NETWORK -->
 <div class="card">
   <h3>Network Switch</h3>
-  <select id="network">
-    <option>Arc Testnet</option>
-    <option>Sepolia</option>
-    <option>Arbitrum Sepolia</option>
+  <select id="network" onchange="switchNetwork()">
+    <option value="0x1">Ethereum</option>
+    <option value="0xaa36a7">Sepolia</option>
+    <option value="0xa4b1">Arbitrum</option>
   </select>
 </div>
 
-<!-- UNIFIED BALANCE -->
+<!-- BALANCE -->
 <div class="card">
   <h3>Unified Balance</h3>
-  <h2 id="balance">$12,840.45</h2>
-
-  <div class="grid">
-    <div class="card">USDC<br><b>2500</b></div>
-    <div class="card">EURC<br><b>1850</b></div>
-    <div class="card">cirBTC<br><b>0.085</b></div>
-  </div>
+  <p id="balance">0 ETH</p>
 </div>
 
-<!-- TRANSFER -->
+<!-- TOKEN TRANSFER -->
 <div class="card">
   <h3>Token Transfer</h3>
 
@@ -120,103 +65,158 @@ input, select {
   <input id="to" placeholder="Receiver Address">
   <input id="amount" placeholder="Amount">
 
-  <button class="btn" onclick="sendToken()">Send</button>
+  <button onclick="sendToken()">Send Token</button>
 </div>
 
-<!-- PORTFOLIO -->
+<!-- TX -->
 <div class="card">
-  <h3>Portfolio Tracker</h3>
-  <canvas id="chart" width="300" height="150"></canvas>
+  <h3>Transaction</h3>
+  <p id="tx">No transaction</p>
 </div>
 
-<!-- ANALYTICS -->
-<div class="card">
-  <h3>Analytics</h3>
-  <p class="small">Volume / Activity Chart</p>
-  <canvas id="chart2" width="300" height="150"></canvas>
 </div>
 
-<!-- TRANSACTIONS -->
-<div class="card">
-  <h3>Recent Transactions</h3>
-  <ul id="tx">
-    <li>USDC Sent → 0x123...abc</li>
-    <li>EURC Received → 0x456...def</li>
-  </ul>
-</div>
-
-<!-- SOCIAL -->
-<div class="card">
-  <h3>Social Connect</h3>
-  <button class="btn">Twitter</button>
-  <button class="btn">Discord</button>
-  <button class="btn">GitHub</button>
-</div>
-
-<!-- SCRIPT -->
 <script>
+
 let provider;
 let signer;
-let dark = true;
+let user;
 
-function toggleDark(){
-  document.body.classList.toggle("light");
-  dark = !dark;
+// token placeholder addresses
+const TOKENS = {
+  USDC:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  EURC:"0x0000000000000000000000000000000000000000",
+  cirBTC:"0x0000000000000000000000000000000000000000"
+};
+
+const ABI = [
+  "function transfer(address to, uint amount) returns (bool)"
+];
+
+
+// ----------------------
+// META MASK CONNECT
+// ----------------------
+async function connectMetaMask(){
+  if(!window.ethereum){
+    alert("Install MetaMask");
+    return;
+  }
+
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = await provider.getSigner();
+  user = await signer.getAddress();
+
+  document.getElementById("wallet").innerText =
+    "MetaMask: " + user;
+
+  loadBalance();
 }
 
-async function connectWallet(){
-  if(window.ethereum){
-    provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
-    alert("Wallet Connected: " + await signer.getAddress());
-  } else {
-    alert("Install MetaMask");
+
+// ----------------------
+// WALLETCONNECT V2
+// ----------------------
+async function connectWalletConnect(){
+
+  const EthereumProvider =
+    window.EthereumProvider?.EthereumProvider;
+
+  if(!EthereumProvider){
+    alert("WalletConnect not loaded");
+    return;
+  }
+
+  const wcProvider = await EthereumProvider.init({
+    projectId: "YOUR_PROJECT_ID_HERE", // 🔴 replace this
+    chains: [1, 11155111, 42161],
+    showQrModal: true
+  });
+
+  await wcProvider.enable();
+
+  provider = new ethers.BrowserProvider(wcProvider);
+  signer = await provider.getSigner();
+  user = await signer.getAddress();
+
+  document.getElementById("wallet").innerText =
+    "WalletConnect: " + user;
+
+  loadBalance();
+}
+
+
+// ----------------------
+// BALANCE
+// ----------------------
+async function loadBalance(){
+  const bal = await provider.getBalance(user);
+  document.getElementById("balance").innerText =
+    ethers.formatEther(bal) + " ETH";
+}
+
+
+// ----------------------
+// NETWORK SWITCH
+// ----------------------
+async function switchNetwork(){
+  const chainId = document.getElementById("network").value;
+
+  try{
+    await window.ethereum.request({
+      method:"wallet_switchEthereumChain",
+      params:[{chainId}]
+    });
+  }catch(e){
+    alert("Switch failed");
   }
 }
 
-function sendToken(){
-  let token = document.getElementById("token").value;
-  let to = document.getElementById("to").value;
-  let amount = document.getElementById("amount").value;
+
+// ----------------------
+// SEND TOKEN
+// ----------------------
+async function sendToken(){
+
+  const token = document.getElementById("token").value;
+  const to = document.getElementById("to").value;
+  const amount = document.getElementById("amount").value;
 
   if(!to || !amount){
     alert("Fill fields");
     return;
   }
 
-  let li = document.createElement("li");
-  li.innerText = `${token} Sent → ${to.slice(0,6)}...`;
-  document.getElementById("tx").appendChild(li);
+  try{
 
-  alert("Transaction simulated (UI level)");
+    const contract = new ethers.Contract(
+      TOKENS[token],
+      ABI,
+      signer
+    );
+
+    const tx = await contract.transfer(
+      to,
+      ethers.parseUnits(amount, 6)
+    );
+
+    document.getElementById("tx").innerText =
+      "Pending: " + tx.hash;
+
+    await tx.wait();
+
+    document.getElementById("tx").innerText =
+      "Success: " + tx.hash;
+
+  }catch(err){
+    console.log(err);
+    document.getElementById("tx").innerText =
+      "Failed Transaction";
+  }
 }
 
-/* SIMPLE CHARTS */
-function draw(){
-  let c = document.getElementById("chart");
-  let ctx = c.getContext("2d");
-  ctx.fillStyle = "#4f46e5";
-  ctx.fillRect(20,50,40,80);
-  ctx.fillRect(80,30,40,100);
-  ctx.fillRect(140,70,40,60);
-}
-
-function draw2(){
-  let c = document.getElementById("chart2");
-  let ctx = c.getContext("2d");
-  ctx.strokeStyle = "#22c55e";
-  ctx.beginPath();
-  ctx.moveTo(10,100);
-  ctx.lineTo(60,60);
-  ctx.lineTo(120,80);
-  ctx.lineTo(180,40);
-  ctx.stroke();
-}
-
-draw();
-draw2();
 </script>
 
 </body>
-  </html>
+</html>
