@@ -255,7 +255,7 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Universal Network Mapping Registry - 100% Verified Parameters Mapping
+        // Universal Network Parameters Configuration Registry
         const networkParams = {
             "0x4cef52": { 
                 chainId: "0x4cef52", 
@@ -384,14 +384,14 @@
             }
         }
 
-        // Direct Open Core Integration - No initialization blocks to freeze click events
+        // 100% Fixed Open Handshake Endpoint Trigger
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     walletStatus.style.color = "#8fa0dd";
-                    walletStatus.innerText = "Requesting extension popups...";
+                    walletStatus.innerText = "Requesting extension handshake...";
                     
-                    // Direct triggering of standard EVM auth popup
+                    // Standard EVM trigger method to query extensions directly
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
                     
@@ -402,17 +402,17 @@
                     isConnected = true;
                     checkCurrentNetwork();
                 } catch (err) {
-                    console.error("Interface dropped:", err);
+                    console.error("Interface execution dropped:", err);
                     walletStatus.style.color = "#e11d48";
-                    walletStatus.innerText = "Connection prompt closed by user.";
+                    walletStatus.innerText = "Connection rejected or closed.";
                 }
             } else { 
                 walletStatus.style.color = "#e11d48";
-                walletStatus.innerText = "Error: Extension provider not injected!"; 
+                walletStatus.innerText = "Error: Multi-Chain provider not found!"; 
             }
         }
 
-        // Math-based runtime verification chain normalization
+        // Sanitized Numeric Calculation Engine for Chain ID Parsing
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
@@ -433,15 +433,15 @@
 
                     if (cleanHexKey && networkParams[cleanHexKey]) {
                         networkSelect.value = cleanHexKey;
-                        networkStatus.style.color = "#10b981"; // Success Verified Green
+                        networkStatus.style.color = "#10b981"; // Success Green Tag
                         networkStatus.innerText = "Network verified: " + networkParams[cleanHexKey].chainName;
                     } else {
-                        networkStatus.style.color = "#e11d48"; // Warning Red
+                        networkStatus.style.color = "#e11d48"; // Warning Red Tag
                         networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
                     }
                     fetchBalances();
                 } catch (e) {
-                    console.error("Failed fetching runtime engine sync:", e);
+                    console.error("Failed fetching dynamic provider thread:", e);
                 }
             }
         }
@@ -464,7 +464,7 @@
                             });
                             networkStatus.innerText = "";
                         } catch (addError) {
-                            console.error("Automatic payload setup dropped:", addError);
+                            console.error("Auto configuration node dropped:", addError);
                         }
                     }
                 }
@@ -475,11 +475,12 @@
             }
         }
 
-        // Initialize active dynamic listeners
+        // Core UI Events Linking
         connectBtn.addEventListener('click', initWalletConnect);
         networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
         sendBtn.addEventListener('click', handleTokenTransfer);
 
+        // Core extension listener handlers setup
         if (typeof window.ethereum !== 'undefined') {
             window.ethereum.on('chainChanged', () => checkCurrentNetwork());
             window.ethereum.on('accountsChanged', (accs) => {
@@ -487,5 +488,4 @@
                     isConnected = false;
                     connectBtn.innerText = "Connect Wallet";
                     connectBtn.classList.remove('connected');
-                    walletStatus.innerText = "Not Connected";
-     
+                    walletStatus.innerText = "Not Conn
