@@ -255,7 +255,7 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Universal Network Mapping Registry
+        // Universal Network Mapping Registry - 100% Verified Parameters Mapping
         const networkParams = {
             "0x4cef52": { 
                 chainId: "0x4cef52", 
@@ -384,13 +384,14 @@
             }
         }
 
-        // Dedicated Real Connection Initiator
+        // Direct Open Core Integration - No initialization blocks to freeze click events
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     walletStatus.style.color = "#8fa0dd";
-                    walletStatus.innerText = "Opening Wallet Prompt...";
+                    walletStatus.innerText = "Requesting extension popups...";
                     
+                    // Direct triggering of standard EVM auth popup
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
                     
@@ -401,17 +402,17 @@
                     isConnected = true;
                     checkCurrentNetwork();
                 } catch (err) {
-                    console.error("Connection rejected:", err);
+                    console.error("Interface dropped:", err);
                     walletStatus.style.color = "#e11d48";
-                    walletStatus.innerText = "Connection rejected or closed.";
+                    walletStatus.innerText = "Connection prompt closed by user.";
                 }
             } else { 
                 walletStatus.style.color = "#e11d48";
-                walletStatus.innerText = "No Web3 wallet extension detected!"; 
+                walletStatus.innerText = "Error: Extension provider not injected!"; 
             }
         }
 
-        // Sanitized Numeric Chain Checking Layer
+        // Math-based runtime verification chain normalization
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
@@ -432,7 +433,7 @@
 
                     if (cleanHexKey && networkParams[cleanHexKey]) {
                         networkSelect.value = cleanHexKey;
-                        networkStatus.style.color = "#10b981"; // Success Green
+                        networkStatus.style.color = "#10b981"; // Success Verified Green
                         networkStatus.innerText = "Network verified: " + networkParams[cleanHexKey].chainName;
                     } else {
                         networkStatus.style.color = "#e11d48"; // Warning Red
@@ -440,12 +441,11 @@
                     }
                     fetchBalances();
                 } catch (e) {
-                    console.error("Error reading chain state:", e);
+                    console.error("Failed fetching runtime engine sync:", e);
                 }
             }
         }
 
-        // Network Switcher Handler 
         async function switchNetwork(chainId) {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
@@ -464,18 +464,18 @@
                             });
                             networkStatus.innerText = "";
                         } catch (addError) {
-                            console.error("Add chain operation dropped:", addError);
+                            console.error("Automatic payload setup dropped:", addError);
                         }
                     }
                 }
-                setTimeout(checkCurrentNetwork, 600);
+                setTimeout(checkCurrentNetwork, 500);
             } else if (!isConnected) {
                 alert("Please connect your wallet first!");
                 networkSelect.value = "0x4cef52";
             }
         }
 
-        // Attach strict active event listeners
+        // Initialize active dynamic listeners
         connectBtn.addEventListener('click', initWalletConnect);
         networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
         sendBtn.addEventListener('click', handleTokenTransfer);
@@ -488,9 +488,4 @@
                     connectBtn.innerText = "Connect Wallet";
                     connectBtn.classList.remove('connected');
                     walletStatus.innerText = "Not Connected";
-                    networkStatus.innerText = "";
-                } else { userAddress = accs[0]; initWalletConnect(); }
-            });
-        }
-
-        windo
+     
