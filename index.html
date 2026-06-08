@@ -255,15 +255,29 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Global strict map parameter storage for checking system
+        // Complete detailed parameters registry for accurate wallet detection
         const networkParams = {
-            "0x1f4": { chainId: "0x1f4", chainName: "Arc Testnet" },
-            "0x01f4": { chainId: "0x1f4", chainName: "Arc Testnet" },
-            "500": { chainId: "0x1f4", chainName: "Arc Testnet" }, // Decimal compatibility handler
-            "0xaa36a7": { chainId: "0xaa36a7", chainName: "Sepolia Testnet" },
-            "11155111": { chainId: "0xaa36a7", chainName: "Sepolia Testnet" },
-            "0x66eee": { chainId: "0x66eee", chainName: "Arbitrum Sepolia" },
-            "421614": { chainId: "0x66eee", chainName: "Arbitrum Sepolia" }
+            "0x1f4": { 
+                chainId: "0x1f4", 
+                chainName: "Arc Testnet",
+                rpcUrls: ["https://rpc.arc-testnet.io"],
+                nativeCurrency: { name: "ARC", symbol: "ARC", decimals: 18 },
+                blockExplorerUrls: ["https://explorer.arc-testnet.io"]
+            },
+            "0xaa36a7": { 
+                chainId: "0xaa36a7", 
+                chainName: "Sepolia Testnet",
+                rpcUrls: ["https://rpc.sepolia.org"],
+                nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: ["https://sepolia.etherscan.io"]
+            },
+            "0x66eee": { 
+                chainId: "0x66eee", 
+                chainName: "Arbitrum Sepolia",
+                rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
+                nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: ["https://sepolia.arbiscan.io"]
+            }
         };
 
         const tokenAddresses = {
@@ -387,52 +401,61 @@
             } else { walletStatus.innerText = "MetaMask not found!"; }
         }
 
-        // Deep matching logical engine fix
+        // Deep cross-checking engine module
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                
-                let rawChainId = String(currentChainId).toLowerCase().trim();
-                let matchedObj = null;
+                let cleanChainId = String(currentChainId).toLowerCase().trim();
 
-                // Absolute conversion logic check
-                if (networkParams[rawChainId]) {
-                    matchedObj = networkParams[rawChainId];
-                } else {
-                    // Try parsing from decimal integers to clean hex blocks
-                    try {
-                        let parsedDecimal = parseInt(rawChainId, rawChainId.startsWith('0x') ? 16 : 10);
-                        if (parsedDecimal === 500) matchedObj = networkParams["0x1f4"];
-                        else if (parsedDecimal === 11155111) matchedObj = networkParams["0xaa36a7"];
-                        else if (parsedDecimal === 421614) matchedObj = networkParams["0x66eee"];
-                    } catch(e) {}
+                // Standard clean formatting adjustment (hex lengths)
+                if (cleanChainId === "0x01f4" || cleanChainId === "500") {
+                    cleanChainId = "0x1f4";
+                } else if (cleanChainId === "11155111") {
+                    cleanChainId = "0xaa36a7";
+                } else if (cleanChainId === "421614") {
+                    cleanChainId = "0x66eee";
                 }
 
-                if (matchedObj) {
-                    // Force input drop-down selection state update
-                    networkSelect.value = matchedObj.chainId;
-                    networkStatus.style.color = "#10b981"; // Success Text Color (Green)
-                    networkStatus.innerText = "Network verified: " + matchedObj.chainName;
+                if (networkParams[cleanChainId]) {
+                    networkSelect.value = cleanChainId;
+                    networkStatus.style.color = "#10b981"; // Success Green
+                    networkStatus.innerText = "Network verified: " + networkParams[cleanChainId].chainName;
                 } else {
-                    networkStatus.style.color = "#e11d48"; // Warning text color (Red)
+                    networkStatus.style.color = "#e11d48"; // Red warning
                     networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
                 }
                 fetchBalances();
             }
         }
 
+        // Fixed Auto Popup Network Switcher and Adder Engine
         async function switchNetwork(chainId) {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
+                    // Try to direct switch network via prompt
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: chainId }],
                     });
                     networkStatus.innerText = "";
-                } catch (err) {
-                    console.error(err);
-                    checkCurrentNetwork();
+                } catch (switchError) {
+                    // Error code 4902 means the chain is missing from MetaMask, triggering addition popup
+                    if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902) || (switchError.message && switchError.message.includes("4902"))) {
+                        try {
+                            // Automatically triggers the MetaMask Add Node UI window
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [networkParams[chainId]],
+                            });
+                            networkStatus.innerText = "";
+                        } catch (addError) {
+                            console.error("Failed adding node info:", addError);
+                        }
+                    } else {
+                        console.error("Wallet error:", switchError);
+                    }
                 }
+                setTimeout(checkCurrentNetwork, 500);
             } else if (!isConnected) {
                 alert("Please connect your wallet first!");
                 networkSelect.value = "0x1f4";
