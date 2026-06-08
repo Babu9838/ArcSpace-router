@@ -255,7 +255,7 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Universal Network Mapping Registry - Optimized for strict hex strings
+        // Universal Network Mapping Registry
         const networkParams = {
             "0x4cef52": { 
                 chainId: "0x4cef52", 
@@ -384,57 +384,68 @@
             }
         }
 
+        // Dedicated Real Connection Initiator
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
-                    walletStatus.innerText = "Connecting...";
+                    walletStatus.style.color = "#8fa0dd";
+                    walletStatus.innerText = "Opening Wallet Prompt...";
+                    
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
+                    
                     connectBtn.innerText = "Wallet Connected";
                     connectBtn.classList.add('connected');
                     walletStatus.innerText = "Connected: " + userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
+                    
                     isConnected = true;
                     checkCurrentNetwork();
                 } catch (err) {
-                    walletStatus.innerText = "Rejected.";
+                    console.error("Connection rejected:", err);
+                    walletStatus.style.color = "#e11d48";
+                    walletStatus.innerText = "Connection rejected or closed.";
                 }
-            } else { walletStatus.innerText = "Wallet extension not found!"; }
-        }
-
-        // Sanitized Verification Module (Converts everything to base integer before validation)
-        async function checkCurrentNetwork() {
-            if (typeof window.ethereum !== 'undefined' && isConnected) {
-                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                
-                // Absolute conversion logic to prevent browser string parsing differences
-                let numericId = parseInt(currentChainId, 16);
-                if (isNaN(numericId)) {
-                    numericId = parseInt(currentChainId, 10);
-                }
-
-                let cleanHexKey = "";
-                if (numericId === 5042002) {
-                    cleanHexKey = "0x4cef52";
-                } else if (numericId === 11155111) {
-                    cleanHexKey = "0xaa36a7";
-                } else if (numericId === 421614) {
-                    cleanHexKey = "0x66eee";
-                }
-
-                if (cleanHexKey && networkParams[cleanHexKey]) {
-                    networkSelect.value = cleanHexKey;
-                    networkStatus.style.color = "#10b981"; // Verified Success (Green Text)
-                    networkStatus.innerText = "Network verified: " + networkParams[cleanHexKey].chainName;
-                } else {
-                    networkSelect.value = ""; // Reset value for unrecognized chains
-                    networkStatus.style.color = "#e11d48"; // Warning Text (Red)
-                    networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
-                }
-                fetchBalances();
+            } else { 
+                walletStatus.style.color = "#e11d48";
+                walletStatus.innerText = "No Web3 wallet extension detected!"; 
             }
         }
 
-        // Direct Execution Prompt Interceptor
+        // Sanitized Numeric Chain Checking Layer
+        async function checkCurrentNetwork() {
+            if (typeof window.ethereum !== 'undefined' && isConnected) {
+                try {
+                    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                    let numericId = parseInt(currentChainId, 16);
+                    if (isNaN(numericId)) {
+                        numericId = parseInt(currentChainId, 10);
+                    }
+
+                    let cleanHexKey = "";
+                    if (numericId === 5042002) {
+                        cleanHexKey = "0x4cef52";
+                    } else if (numericId === 11155111) {
+                        cleanHexKey = "0xaa36a7";
+                    } else if (numericId === 421614) {
+                        cleanHexKey = "0x66eee";
+                    }
+
+                    if (cleanHexKey && networkParams[cleanHexKey]) {
+                        networkSelect.value = cleanHexKey;
+                        networkStatus.style.color = "#10b981"; // Success Green
+                        networkStatus.innerText = "Network verified: " + networkParams[cleanHexKey].chainName;
+                    } else {
+                        networkStatus.style.color = "#e11d48"; // Warning Red
+                        networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
+                    }
+                    fetchBalances();
+                } catch (e) {
+                    console.error("Error reading chain state:", e);
+                }
+            }
+        }
+
+        // Network Switcher Handler 
         async function switchNetwork(chainId) {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
@@ -444,7 +455,6 @@
                     });
                     networkStatus.innerText = "";
                 } catch (switchError) {
-                    // Code 4902 triggers manual data registry popup window injection inside the browser
                     if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902) || (switchError.message && switchError.message.includes("4902"))) {
                         try {
                             const networkPayload = networkParams[chainId];
@@ -454,19 +464,18 @@
                             });
                             networkStatus.innerText = "";
                         } catch (addError) {
-                            console.error("Manual add operation dropped:", addError);
+                            console.error("Add chain operation dropped:", addError);
                         }
-                    } else {
-                        console.error("General runtime chain exception:", switchError);
                     }
                 }
-                setTimeout(checkCurrentNetwork, 500);
+                setTimeout(checkCurrentNetwork, 600);
             } else if (!isConnected) {
                 alert("Please connect your wallet first!");
                 networkSelect.value = "0x4cef52";
             }
         }
 
+        // Attach strict active event listeners
         connectBtn.addEventListener('click', initWalletConnect);
         networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
         sendBtn.addEventListener('click', handleTokenTransfer);
@@ -484,6 +493,4 @@
             });
         }
 
-        window.addEventListener('load', async () => {
-            if (typeof window.ethereum !== 'undefined') {
-                const activeAccounts = await window.ether
+        windo
