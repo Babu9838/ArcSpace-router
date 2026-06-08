@@ -255,12 +255,15 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Dynamic params network data array containing multiple naming patterns
+        // Global strict map parameter storage for checking system
         const networkParams = {
             "0x1f4": { chainId: "0x1f4", chainName: "Arc Testnet" },
-            "0x01f4": { chainId: "0x1f4", chainName: "Arc Testnet" }, // Handles zero padding mismatch
+            "0x01f4": { chainId: "0x1f4", chainName: "Arc Testnet" },
+            "500": { chainId: "0x1f4", chainName: "Arc Testnet" }, // Decimal compatibility handler
             "0xaa36a7": { chainId: "0xaa36a7", chainName: "Sepolia Testnet" },
-            "0x66eee": { chainId: "0x66eee", chainName: "Arbitrum Sepolia" }
+            "11155111": { chainId: "0xaa36a7", chainName: "Sepolia Testnet" },
+            "0x66eee": { chainId: "0x66eee", chainName: "Arbitrum Sepolia" },
+            "421614": { chainId: "0x66eee", chainName: "Arbitrum Sepolia" }
         };
 
         const tokenAddresses = {
@@ -384,26 +387,35 @@
             } else { walletStatus.innerText = "MetaMask not found!"; }
         }
 
-        // Optimized verification module mapping
+        // Deep matching logical engine fix
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                let cleanChainId = currentChainId.toLowerCase();
+                
+                let rawChainId = String(currentChainId).toLowerCase().trim();
+                let matchedObj = null;
 
-                // If MetaMask parses 500 as 0x01f4 instead of 0x1f4, redirect standard string reference
-                if (cleanChainId === "0x01f4") {
-                    cleanChainId = "0x1f4";
+                // Absolute conversion logic check
+                if (networkParams[rawChainId]) {
+                    matchedObj = networkParams[rawChainId];
+                } else {
+                    // Try parsing from decimal integers to clean hex blocks
+                    try {
+                        let parsedDecimal = parseInt(rawChainId, rawChainId.startsWith('0x') ? 16 : 10);
+                        if (parsedDecimal === 500) matchedObj = networkParams["0x1f4"];
+                        else if (parsedDecimal === 11155111) matchedObj = networkParams["0xaa36a7"];
+                        else if (parsedDecimal === 421614) matchedObj = networkParams["0x66eee"];
+                    } catch(e) {}
                 }
 
-                if (networkParams[cleanChainId]) {
-                    // Update dropdown to sync UI selection state
-                    networkSelect.value = "0x1f4" && cleanChainId === "0x1f4" ? "0x1f4" : cleanChainId;
-                    
-                    networkStatus.style.color = "#10b981"; // Succesful verification text color (Green)
-                    networkStatus.innerText = "Network verified: " + networkParams[cleanChainId].chainName;
+                if (matchedObj) {
+                    // Force input drop-down selection state update
+                    networkSelect.value = matchedObj.chainId;
+                    networkStatus.style.color = "#10b981"; // Success Text Color (Green)
+                    networkStatus.innerText = "Network verified: " + matchedObj.chainName;
                 } else {
-                    networkStatus.style.color = "#e11d48";
-                    networkStatus.innerText = "Unsupported Chain Connected.";
+                    networkStatus.style.color = "#e11d48"; // Warning text color (Red)
+                    networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
                 }
                 fetchBalances();
             }
