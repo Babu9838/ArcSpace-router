@@ -106,7 +106,7 @@
             font-size: 0.85rem;
         }
 
-        /* Balance grid layout */
+        /* Unified Balance Grid layout - 4 Column adjust kora hoyeche */
         .balance-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -148,25 +148,31 @@
     <div class="card">
         <label for="networkSelect">Network Switch</label>
         <select id="networkSelect">
-            <option value="0x1f4">Arc Testnet</option> <option value="0xaa36a7">Sepolia Testnet</option> <option value="0x66eee">Arbitrum Sepolia</option> </select>
+            <option value="0x1f4">Arc Testnet</option>
+            <option value="0xaa36a7">Sepolia Testnet</option>
+            <option value="0x66eee">Arbitrum Sepolia</option>
+        </select>
         <div id="networkStatus" class="status-text" style="color: #10b981;"></div>
     </div>
 
     <div class="card">
         <label>Unified Balance</label>
-        <div style="font-size: 0.9rem; margin-bottom: 10px;">ETH: <strong id="ethBalance">0</strong></div>
         <div class="balance-grid">
             <div class="balance-item">
+                <span>ETH</span>
+                <strong id="ethBalance">0.0000</strong>
+            </div>
+            <div class="balance-item">
                 <span>USDC</span>
-                <strong id="usdcBalance">0</strong>
+                <strong id="usdcBalance">0.00</strong>
             </div>
             <div class="balance-item">
                 <span>EURC</span>
-                <strong id="eurcBalance">0</strong>
+                <strong id="eurcBalance">0.00</strong>
             </div>
             <div class="balance-item">
                 <span>cirBTC</span>
-                <strong id="cirBtcBalance">0</strong>
+                <strong id="cirBtcBalance">0.0000</strong>
             </div>
         </div>
     </div>
@@ -222,6 +228,7 @@
         const networkSelect = document.getElementById('networkSelect');
         const networkStatus = document.getElementById('networkStatus');
 
+        // Target balance nodes
         const ethBalanceEl = document.getElementById('ethBalance');
         const usdcBalanceEl = document.getElementById('usdcBalance');
         const eurcBalanceEl = document.getElementById('eurcBalance');
@@ -230,7 +237,8 @@
         let isConnected = false;
         let userAddress = "";
 
-        // Complete support dynamic params block
+        const minABI = ["function balanceOf(address owner) view returns (uint256)"];
+
         const networkParams = {
             "0x1f4": {
                 chainId: "0x1f4",
@@ -255,20 +263,60 @@
             }
         };
 
+        // Token contract placeholders (Apnar token deployment contractual address ekhane change hobe)
+        const tokenAddresses = {
+            "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+            "EURC": "0x0000000000000000000000000000000000000000",
+            "cirBTC": "0x0000000000000000000000000000000000000000"
+        };
+
+        // Universal Balance loader function
         async function fetchBalances() {
             if (!isConnected || !userAddress) return;
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
+                
+                // Load Native Main Token (ETH/ARC) Balance
                 const rawEthBalance = await provider.getBalance(userAddress);
                 ethBalanceEl.innerText = parseFloat(ethers.formatEther(rawEthBalance)).toFixed(4);
 
-                // Fallback UI data
-                usdcBalanceEl.innerText = "0.00";
-                eurcBalanceEl.innerText = "0.00";
-                cirBtcBalanceEl.innerText = "0.0000";
+                // Load ERC-20: USDC (Demo handling code block)
+                if (tokenAddresses.USDC !== "0x0000000000000000000000000000000000000000") {
+                    try {
+                        const contract = new ethers.Contract(tokenAddresses.USDC, minABI, provider);
+                        const bal = await contract.balanceOf(userAddress);
+                        usdcBalanceEl.innerText = parseFloat(ethers.formatUnits(bal, 6)).toFixed(2);
+                    } catch(e) { usdcBalanceEl.innerText = "0.00"; }
+                } else { usdcBalanceEl.innerText = "0.00"; }
+
+                // Load ERC-20: EURC
+                if (tokenAddresses.EURC !== "0x0000000000000000000000000000000000000000") {
+                    try {
+                        const contract = new ethers.Contract(tokenAddresses.EURC, minABI, provider);
+                        const bal = await contract.balanceOf(userAddress);
+                        eurcBalanceEl.innerText = parseFloat(ethers.formatUnits(bal, 18)).toFixed(2);
+                    } catch(e) { eurcBalanceEl.innerText = "0.00"; }
+                } else { eurcBalanceEl.innerText = "0.00"; }
+
+                // Load ERC-20: cirBTC
+                if (tokenAddresses.cirBTC !== "0x0000000000000000000000000000000000000000") {
+                    try {
+                        const contract = new ethers.Contract(tokenAddresses.cirBTC, minABI, provider);
+                        const bal = await contract.balanceOf(userAddress);
+                        cirBtcBalanceEl.innerText = parseFloat(ethers.formatUnits(bal, 18)).toFixed(4);
+                    } catch(e) { cirBtcBalanceEl.innerText = "0.0000"; }
+                } else { cirBtcBalanceEl.innerText = "0.0000"; }
+
             } catch (err) {
-                console.error("Balance loading failed:", err);
+                console.error("Balance loading fell short:", err);
             }
+        }
+
+        function resetBalances() {
+            ethBalanceEl.innerText = "0.0000";
+            usdcBalanceEl.innerText = "0.00";
+            eurcBalanceEl.innerText = "0.00";
+            cirBtcBalanceEl.innerText = "0.0000";
         }
 
         async function initWalletConnect() {
@@ -298,8 +346,6 @@
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                
-                // Pure Hex formatting matching setup (handles 0x1f4 vs 0x01f4 padding strings)
                 let cleanChainId = currentChainId.toLowerCase();
                 if (cleanChainId === "0x01f4" || cleanChainId === "0x1f4") {
                     cleanChainId = "0x1f4"; 
@@ -307,11 +353,11 @@
 
                 if (networkParams[cleanChainId]) {
                     networkSelect.value = cleanChainId;
-                    networkStatus.style.color = "#10b981"; // Succesful text color green
+                    networkStatus.style.color = "#10b981";
                     networkStatus.innerText = "Network verified: " + networkParams[cleanChainId].chainName;
                     fetchBalances();
                 } else {
-                    networkStatus.style.color = "#e11d48"; // Warning text color red
+                    networkStatus.style.color = "#e11d48";
                     networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
                 }
             }
@@ -326,7 +372,6 @@
                     });
                     networkStatus.innerText = "";
                 } catch (switchError) {
-                    // Trigger add custom network parameters block directly if chain is blank in client wallet
                     if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902)) {
                         try {
                             await window.ethereum.request({
@@ -363,6 +408,7 @@
                     connectBtn.classList.remove('connected');
                     walletStatus.innerText = "Not Connected";
                     networkStatus.innerText = "";
+                    resetBalances();
                 } else {
                     userAddress = accounts[0];
                     initWalletConnect();
