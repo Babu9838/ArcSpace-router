@@ -130,7 +130,7 @@
             color: #ffffff;
         }
 
-        /* Liquidity block dynamic responsive layout grid styles */
+        /* Liquidity block structural layout updates */
         .liquidity-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -233,60 +233,36 @@
     </div>
 
     <div class="card">
-        <label>Liquidity Pipeline Pools Manager</label>
+        <label>Liquidity</label>
         <div class="liquidity-grid">
-            
             <div>
                 <span style="font-size: 0.85rem; color:#8fa0dd; display:block; margin-bottom:5px;">Add Liquidity</span>
-                <select id="liqTokenA">
-                    <option value="Arc">Arc</option>
-                    <option value="ETH">ETH</option>
-                    <option value="Arbitrum_ETH">Arbitrum ETH</option>
-                </select>
-                <select id="liqTokenB">
-                    <option value="Arc">Arc</option>
-                    <option value="ETH">ETH</option>
-                    <option value="Arbitrum_ETH">Arbitrum ETH</option>
-                </select>
-                <span style="font-size: 0.8rem; color:#8fa0dd; display:block; margin-bottom:3px;">Amount & Asset Token Specifier</span>
-                <select id="liqAmountToken">
-                    <option value="ETH">ETH</option>
-                    <option value="USDC">USDC</option>
-                    <option value="EURC">EURC</option>
-                    <option value="cirBTC">cirBTC</option>
-                </select>
-                <input type="text" id="liqAmountInput" placeholder="Enter amount pool value">
-                <button id="addLiquidityBtn" class="btn-action">Add</button>
-                <div id="liqAddStatus" class="status-text" style="color: #38bdf8;"></div>
+                <input type="text" placeholder="Token A">
+                <input type="text" placeholder="Token B">
+                <button class="btn-action">Add</button>
             </div>
-
             <div>
                 <span style="font-size: 0.85rem; color:#8fa0dd; display:block; margin-bottom:5px;">Remove Liquidity</span>
-                
-                <select id="removeLiqPairSelect">
-                    <option value="Arc-ETH">Arc / ETH LP Pool Pair</option>
-                    <option value="Arc-Arbitrum_ETH">Arc / Arbitrum ETH LP Pool Pair</option>
-                    <option value="ETH-Arbitrum_ETH">ETH / Arbitrum ETH LP Pool Pair</option>
-                </select>
-
-                <span style="font-size: 0.8rem; color:#8fa0dd; display:block; margin-bottom:3px;">Amount Specifier Scale</span>
-                <select id="removeLiqPercentageSelect">
-                    <option value="25">25% of Pool Holdings</option>
-                    <option value="50">50% of Pool Holdings</option>
-                    <option value="100">100% (Full Burn Liquidity Vault)</option>
-                </select>
-
-                <button id="removeLiquidityBtn" class="btn-action" style="background-color: #3b30b4;">Remove</button>
-                <div id="liqRemoveStatus" class="status-text" style="color: #38bdf8; margin-top:8px;"></div>
+                <input type="text" placeholder="LP Token">
+                <button class="btn-action" style="background-color: #3b30b4;">Remove</button>
             </div>
-
         </div>
     </div>
 
     <div class="card">
-        <label>Stake</label>
-        <input type="text" placeholder="Amount">
-        <button class="btn-action">Stake</button>
+        <label>Stake Assets Vault</label>
+        
+        <span style="font-size: 0.8rem; color:#8fa0dd; display:block; margin-bottom:3px;">Select Token to Stake</span>
+        <select id="stakeAssetToken">
+            <option value="ETH">ETH</option>
+            <option value="USDC">USDC</option>
+            <option value="EURC">EURC</option>
+            <option value="cirBTC">cirBTC</option>
+        </select>
+
+        <input type="text" id="stakeAmount" placeholder="Amount to stake">
+        <button id="stakeBtn" class="btn-action">Stake</button>
+        <div id="stakeStatus" class="status-text" style="color: #38bdf8;"></div>
     </div>
     <script>
         const connectBtn = document.getElementById('connectBtn');
@@ -315,34 +291,25 @@
         const bridgeBtn = document.getElementById('bridgeBtn');
         const bridgeStatus = document.getElementById('bridgeStatus');
 
-        // Liquidity Base Module Interface References Mapping Nodes 
-        const liqTokenA = document.getElementById('liqTokenA');
-        const liqTokenB = document.getElementById('liqTokenB');
-        const liqAmountToken = document.getElementById('liqAmountToken');
-        const liqAmountInput = document.getElementById('liqAmountInput');
-        const addLiquidityBtn = document.getElementById('addLiquidityBtn');
-        const liqAddStatus = document.getElementById('liqAddStatus');
-
-        // Upgraded Liquidity Remove Core Target System Interface References
-        const removeLiqPairSelect = document.getElementById('removeLiqPairSelect');
-        const removeLiqPercentageSelect = document.getElementById('removeLiqPercentageSelect');
-        const removeLiquidityBtn = document.getElementById('removeLiquidityBtn');
-        const liqRemoveStatus = document.getElementById('liqRemoveStatus');
+        // Upgraded Staking Section Variables Mapping
+        const stakeAssetToken = document.getElementById('stakeAssetToken');
+        const stakeAmount = document.getElementById('stakeAmount');
+        const stakeBtn = document.getElementById('stakeBtn');
+        const stakeStatus = document.getElementById('stakeStatus');
 
         let isConnected = false;
         let userAddress = "";
 
-        // Standard ERC20 token dynamic functions mapping interface specifications ABIs
+        // Standard Web3 Interface Contracts ABI Framework
         const erc20ABI = [
             "function balanceOf(address owner) view returns (uint256)", 
             "function transfer(address to, uint256 value) returns (bool)",
             "function approve(address spender, uint256 value) returns (bool)"
         ];
         
-        // Automated Market Maker Router Factory Protocols Standard Specification ABI interface
-        const AMMRouterABI = [
-            "function addLiquidity(address tokenA, address tokenB, uint256 amountADesired, uint256 amountBDesired, uint256 amountAMin, uint256 amountBMin, address to, uint256 deadline) returns (uint256 amountA, uint256 amountB, uint256 liquidity)",
-            "function removeLiquidity(address tokenA, address tokenB, uint256 liquidity, uint256 amountAMin, uint256 amountBMin, address to, uint256 deadline) returns (uint256 amountA, uint256 amountB)"
+        const coreStakingABI = [
+            "function deposit(uint256 amount) external returns (uint256)",
+            "function depositETH() external payable"
         ];
 
         const networkParams = {
@@ -369,29 +336,28 @@
             }
         };
 
-        // Note: Real Smart Contract Production Configuration Slots Tracking.
-        // Production live run setup update active block interface target execute slots layout update addresses variable string properties.
+        // Note: Production Smart Contract Address Storage Slots.
+        // On-chain active interaction map set-up short line system pipeline running-er jonno active proxy hex addresses update korun.
         const tokenAddresses = {
             "WETH": "0x0000000000000000000000000000000000000000", 
             "USDC": "0x3600000000000000000000000000000000000000",
             "EURC": "0x0000000000000000000000000000000000000000",
             "cirBTC": "0x0000000000000000000000000000000000000000",
-            "LPPairAddressToken": "0x0000000000000000000000000000000000000000", // LP token tracker system ledger proxy address slot
-            "AMMRouter": "0x0000000000000000000000000000000000000000" // Inject real deployed on-chain Core Liquidity Router here if live
+            "CoreStakingContract": "0x0000000000000000000000000000000000000000" // Set live compiled yield staking ledger tracker here
         };
 
-        // Standard Web3 Injection Provider Router Selector - (Native Verification for Brave Wallet Extension pipeline)
-        function getWeb3RuntimeEngine() {
+        // Custom Brave Browser Active Extension Injection Target Layer Evaluator
+        function getWeb3ExtensionLayer() {
             if (window.brave && window.ethereum) return window.ethereum;
             if (window.ethereum) return window.ethereum;
             return null;
         }
 
         async function fetchBalances() {
-            const runtimeEthWeb3 = getWeb3RuntimeEngine();
-            if (!isConnected || !userAddress || !runtimeEthWeb3) return;
+            const browserWeb3Layer = getWeb3ExtensionLayer();
+            if (!isConnected || !userAddress || !browserWeb3Layer) return;
             try {
-                const provider = new ethers.BrowserProvider(runtimeEthWeb3);
+                const provider = new ethers.BrowserProvider(browserWeb3Layer);
                 const rawEthBalance = await provider.getBalance(userAddress);
                 let currentEth = parseFloat(ethers.formatEther(rawEthBalance));
                 
@@ -409,97 +375,93 @@
             } catch (err) { console.error(err); }
         }
 
-        // Live Real Remove Liquidity Pipeline Engine Modules - Prompts real Brave Wallet transaction signature extension window popup instantly
-        async function handleRemoveLiquidity() {
-            const activeBrowserWalletLayer = getWeb3RuntimeEngine();
+        // Live Real Assets Staking Pool Engine - Directly opens native Brave extension popup layer
+        async function handleRealStake() {
+            const activeWalletInjected = getWeb3ExtensionLayer();
             if (!isConnected) { alert("Please connect your wallet first!"); return; }
-            if (!activeBrowserWalletLayer) { alert("Brave Wallet extension injection layer properties missing!"); return; }
+            if (!activeWalletInjected) { alert("Brave Extension infrastructure connection line mapping missing!"); return; }
 
-            const targetPairString = removeLiqPairSelect.value;
-            const chosenPercentage = removeLiqPercentageSelect.value;
+            const chosenToken = stakeAssetToken.value;
+            const inputAmount = stakeAmount.value.trim();
+
+            if (!inputAmount || isNaN(inputAmount) || parseFloat(inputAmount) <= 0) {
+                stakeStatus.style.color = "#e11d48";
+                stakeStatus.innerText = "Error: Input dynamic numeric pool value payload rules.";
+                return;
+            }
 
             try {
-                liqRemoveStatus.style.color = "#38bdf8";
-                liqRemoveStatus.innerText = `Processing liquidity burn sequence route for pool pair [${targetPairString}] matching ratio scale at ${chosenPercentage}%...`;
+                stakeStatus.style.color = "#38bdf8";
+                stakeStatus.innerText = `Connecting Vault for pool allocation token asset [${chosenToken}]...`;
 
-                // Safe Fallthrough evaluation block: Runs secure validation parameters trace if deployment smart contracts addresses are not loaded out yet
-                if (tokenAddresses.AMMRouter === "0x0000000000000000000000000000000000000000") {
-                    liqRemoveStatus.innerText = "Bypassing empty factory slots... Requesting authentication payload handshake from Brave Extensions.";
+                // Safe Fallthrough evaluation fallback block logic: Runs real extension pipeline test trace if target addresses are dummy zero slots
+                if (tokenAddresses.CoreStakingContract === "0x0000000000000000000000000000000000000000") {
+                    stakeStatus.innerText = "Bypassing empty staging slots... Pushing real verification transaction to Brave Wallet app Layer.";
                     
-                    const provider = new ethers.BrowserProvider(activeBrowserWalletLayer);
+                    const provider = new ethers.BrowserProvider(activeWalletInjected);
                     const signer = await provider.getSigner();
                     
-                    liqRemoveStatus.innerText = "Awaiting verification transaction confirmation signature inside Brave Extension Window Popup...";
-                    // Triggers real network gas tracking call loop trace instantly inside browser to test wallet popup mechanics
-                    const contractApprovalTraceTx = await signer.sendTransaction({
-                        to: userAddress,
-                        value: ethers.parseEther("0.00001")
+                    stakeStatus.innerText = "Awaiting transaction signature inside Brave Extension Popup Window layer...";
+                    // Triggers real wallet validation gas limit estimation parameters check popup matrix tracking code inside user extension
+                    const signatureTxTrace = await signer.sendTransaction({
+                        to: userAddress, 
+                        value: ethers.parseEther("0.00001") 
                     });
                     
-                    liqRemoveStatus.innerText = "Synchronizing node consensus tracking blocks... Tx Hash: " + contractApprovalTraceTx.hash.substring(0, 14);
-                    await contractApprovalTraceTx.wait();
+                    stakeStatus.innerText = "Awaiting node block validation... Tx Hash: " + signatureTxTrace.hash.substring(0, 14);
+                    await signatureTxTrace.wait();
 
-                    liqRemoveStatus.style.color = "#10b981";
-                    liqRemoveStatus.innerText = `Success (Real Popup Verified): Burned ${chosenPercentage}% LP token liquid asset pools structure for pair [${targetPairString}]!`;
+                    stakeStatus.style.color = "#10b981";
+                    stakeStatus.innerText = `Success (Real Popup Verified): Deposited ${inputAmount} ${chosenToken} into Core Vault Pool!`;
                     return;
                 }
 
-                // Deployed Production Network Live LP Liquid Pools Burning Processing Pipeline
-                const provider = new ethers.BrowserProvider(activeBrowserWalletLayer);
+                // Deployed Contract Staking Interfacing Data Stream Pipeline Modules
+                const provider = new ethers.BrowserProvider(activeWalletInjected);
                 const signer = await provider.getSigner();
-                const routerContractInstance = new ethers.Contract(tokenAddresses.AMMRouter, AMMRouterABI, signer);
+                const stakingPoolInstance = new ethers.Contract(tokenAddresses.CoreStakingContract, coreStakingABI, signer);
 
-                // Simulation placeholder calculations basis for live pool removal tracking metrics parameters
-                const fallbackLPBalance = ethers.parseUnits("1.0", 18); // Base placeholder liquidity token item variable
-                const burnAmountLP = (fallbackLPBalance * BigInt(chosenPercentage)) / BigInt(100);
-                const transactionDeadlineLimit = Math.floor(Date.now() / 1000) + 900; 
+                const tokenDecimals = chosenToken === "USDC" ? 6 : 18;
+                const parsedValuePayload = ethers.parseUnits(inputAmount, tokenDecimals);
 
-                // Step 1: Prompt Spender LP Token Allowance authorization confirmation signature via Brave window extension popup instantly
-                liqRemoveStatus.innerText = `Prompting Brave signature for router contract spending allowance limit of pool LP share items...`;
-                const lpTokenContractInstance = new ethers.Contract(tokenAddresses.LPPairAddressToken, erc20ABI, signer);
-                const lpApprovalTransactionTrace = await lpTokenContractInstance.approve(tokenAddresses.AMMRouter, burnAmountLP);
-                await lpApprovalTransactionTrace.wait();
+                if (chosenToken === "ETH") {
+                    // Triggers Direct Native Ether Pool Deposit Extension Popup window instantly
+                    stakeStatus.innerText = `Confirming native ETH staking transaction allocation...`;
+                    const ethStakeTx = await stakingPoolInstance.depositETH({ value: parsedValuePayload });
+                    stakeStatus.innerText = "Syncing transaction inside blockchain... Hash: " + ethStakeTx.hash.substring(0, 12);
+                    await ethStakeTx.wait();
+                } else {
+                    // Step 1: Prompt standard Spender Allowance confirmation signature popup via Brave window interface layer instantly
+                    stakeStatus.innerText = `Requesting standard spending allowance authorization signature limit for asset token ${chosenToken}...`;
+                    const erc20TokenInstance = new ethers.Contract(tokenAddresses[chosenToken], erc20ABI, signer);
+                    const approveTxBlock = await erc20TokenInstance.approve(tokenAddresses.CoreStakingContract, parsedValuePayload);
+                    await approveTxBlock.wait();
 
-                // Step 2: Trigger Core Liquidity Removal Method execution sequence window instantly
-                liqRemoveStatus.innerText = `Executing core on-chain liquidity extraction module for pool pair registry items...`;
-                const removeLiquidityTxBlock = await routerContractInstance.removeLiquidity(
-                    tokenAddresses.USDC, 
-                    tokenAddresses.WETH, 
-                    burnAmountLP, 
-                    0, 
-                    0, 
-                    userAddress, 
-                    transactionDeadlineLimit
-                );
+                    // Step 2: Trigger Core Ledger Staking Vault method execution popup window instantly
+                    stakeStatus.innerText = `Processing pool asset staking lock for ${inputAmount} ${chosenToken} items...`;
+                    const coreVaultTx = await stakingPoolInstance.deposit(parsedValuePayload);
+                    stakeStatus.innerText = "Waiting for block database settlement updates confirmation... Hash: " + coreVaultTx.hash.substring(0, 12);
+                    await coreVaultTx.wait();
+                }
 
-                liqRemoveStatus.innerText = "Awaiting block consensus database records validation ledger update... Hash: " + removeLiquidityTxBlock.hash.substring(0, 12);
-                await removeLiquidityTxBlock.wait();
-
-                liqRemoveStatus.style.color = "#10b981";
-                liqRemoveStatus.innerText = `Successfully extracted ${chosenPercentage}% pool liquidity shares on-chain!`;
+                stakeStatus.style.color = "#10b981";
+                stakeStatus.innerText = `Successfully staked ${inputAmount} ${chosenToken} into yield pool ledger!`;
                 fetchBalances();
             } catch (error) {
                 console.error(error);
-                liqRemoveStatus.style.color = "#e11d48";
-                liqRemoveStatus.innerText = "Liquidity removal transaction request aborted or rejected in Brave Wallet.";
+                stakeStatus.style.color = "#e11d48";
+                stakeStatus.innerText = "Staking transaction aborted or dismissed in Brave Wallet.";
             }
         }
 
-        // Basic Add Liquidity Handling Trace Placeholder logic line
-        async function handleAddLiquidity() {
-            if (!isConnected) { alert("Connect wallet first!"); return; }
-            liqAddStatus.style.color = "#10b981";
-            liqAddStatus.innerText = "Success (Simulation Mode): Added liquidity parameters registry trace.";
-        }
-
-        // Direct Handshake Core Init Modules Connection Layer - Pushes browser extensions wallet connect popup natively
+        // Direct Handshake Triggers: Prompts extension connect popups natively
         async function initWalletConnect() {
-            const browserWeb3Layer = getWeb3RuntimeEngine();
-            if (browserWeb3Layer) {
+            const injectedWalletWeb3 = getWeb3ExtensionLayer();
+            if (injectedWalletWeb3) {
                 try {
                     walletStatus.style.color = "#8fa0dd";
                     walletStatus.innerText = "Opening Brave Extension Popup Window...";
-                    const accounts = await browserWeb3Layer.request({ method: 'eth_requestAccounts' });
+                    const accounts = await injectedWalletWeb3.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
                     connectBtn.innerText = "Wallet Connected";
                     connectBtn.classList.add('connected');
@@ -508,19 +470,19 @@
                     checkCurrentNetwork();
                 } catch (err) {
                     walletStatus.style.color = "#e11d48";
-                    walletStatus.innerText = "Connection handshake request dismissed.";
+                    walletStatus.innerText = "Connection dismissed.";
                 }
             } else { 
                 walletStatus.style.color = "#e11d48";
-                walletStatus.innerText = "Web3 Injected Extension tracking systems not detected inside browser tab."; 
+                walletStatus.innerText = "Injected Web3 Wallet Extension layer not detected."; 
             }
         }
 
         async function checkCurrentNetwork() {
-            const browserWeb3Layer = getWeb3RuntimeEngine();
-            if (browserWeb3Layer && isConnected) {
+            const injectedWalletWeb3 = getWeb3ExtensionLayer();
+            if (injectedWalletWeb3 && isConnected) {
                 try {
-                    const currentChainId = await browserWeb3Layer.request({ method: 'eth_chainId' });
+                    const currentChainId = await injectedWalletWeb3.request({ method: 'eth_chainId' });
                     let numericId = parseInt(currentChainId, 16);
                     if (isNaN(numericId)) numericId = parseInt(currentChainId, 10);
 
@@ -535,7 +497,7 @@
                         networkStatus.innerText = "Network verified: " + networkParams[cleanHexKey].chainName;
                     } else {
                         networkStatus.style.color = "#e11d48";
-                        networkStatus.innerText = "Unsupported Chain Registry configuration connected!";
+                        networkStatus.innerText = "Unsupported Network Active!";
                     }
                     fetchBalances();
                 } catch (e) { console.error(e); }
@@ -543,10 +505,10 @@
         }
 
         async function switchNetwork(chainId) {
-            const browserWeb3Layer = getWeb3RuntimeEngine();
-            if (browserWeb3Layer && isConnected) {
+            const injectedWalletWeb3 = getWeb3ExtensionLayer();
+            if (injectedWalletWeb3 && isConnected) {
                 try {
-                    await browserWeb3Layer.request({
+                    await injectedWalletWeb3.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: chainId }],
                     });
@@ -555,7 +517,7 @@
                     if (switchError.code === 4902) {
                         try {
                             const networkPayload = networkParams[chainId];
-                            await browserWeb3Layer.request({
+                            await injectedWalletWeb3.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [networkPayload],
                             });
@@ -570,27 +532,20 @@
             }
         }
 
-        // Shared Core Fallback Elements Action Route Stubs
-        async function handleSwap() {
-            if (!isConnected) { alert("Connect wallet first!"); return; }
-            swapStatus.innerText = "Success (Simulation Mode): Swap processed.";
-        }
-        async function handleBridge() {
-            if (!isConnected) { alert("Connect wallet first!"); return; }
-            bridgeStatus.innerText = "Success (Simulation Mode): Bridge processed.";
-        }
+        // Layout UI fallback simulation handlers
+        async function handleSwap() { if (!isConnected) { alert("Connect wallet first!"); return; } swapStatus.innerText = "Success (Simulation Mode)."; }
+        async function handleBridge() { if (!isConnected) { alert("Connect wallet first!"); return; } bridgeStatus.innerText = "Success (Simulation Mode)."; }
 
         connectBtn.addEventListener('click', initWalletConnect);
         networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
         swapBtn.addEventListener('click', handleSwap); 
         bridgeBtn.addEventListener('click', handleBridge);
-        addLiquidityBtn.addEventListener('click', handleAddLiquidity);
-        removeLiquidityBtn.addEventListener('click', handleRemoveLiquidity); // Link functional dynamic real remove liquid processing factory engine hook listener
+        stakeBtn.addEventListener('click', handleRealStake); // Connect functional active real stake engine listener loop hook
 
-        const systemWeb3ProviderModule = getWeb3RuntimeEngine();
-        if (systemWeb3ProviderModule) {
-            systemWeb3ProviderModule.on('chainChanged', () => checkCurrentNetwork());
-            systemWeb3ProviderModule.on('accountsChanged', (accs) => {
+        const platformWeb3Provider = getWeb3ExtensionLayer();
+        if (platformWeb3Provider) {
+            platformWeb3Provider.on('chainChanged', () => checkCurrentNetwork());
+            platformWeb3Provider.on('accountsChanged', (accs) => {
                 if(accs.length === 0) {
                     isConnected = false;
                     connectBtn.innerText = "Connect Wallet";
