@@ -17,16 +17,16 @@
         /* Header container (Logo ebong text ekline-e rakhar jonno) */
         .dashboard-header {
             display: flex;
-            align-items: center; /* Vertical alignment center rakhar jonno */
-            gap: 12px;           /* Logo ebong text er makkhaner gapping */
+            align-items: center; 
+            gap: 12px;           
             margin-bottom: 25px;
         }
 
-        /* Notun Logo Style */
+        /* Logo Style */
         .dashboard-logo {
-            width: 32px;         /* Heading text er sathe perfect size matching */
+            width: 32px;         
             height: 32px;
-            border-radius: 6px;  /* Logo-ti square holeo baje jate na lage tai halka curve border */
+            border-radius: 6px;  
             object-fit: cover;
         }
 
@@ -38,7 +38,7 @@
             margin: 0;
         }
 
-        /* Card ba Section Design (Ager motoi) */
+        /* Card ba Section Design */
         .card {
             background-color: #131a2e;
             border-radius: 8px;
@@ -47,21 +47,33 @@
             border: 1px solid #1e2942;
         }
 
-        /* Connect Wallet Button */
+        /* Connect Wallet Button Style */
         .btn-connect {
             background-color: #3b30b4;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 8px 16px;
             border-radius: 4px;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            font-weight: bold;
             cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn-connect:hover {
+            background-color: #4c3ee3;
+        }
+
+        /* Wallet connect hole button er shobuj color style */
+        .btn-connect.connected {
+            background-color: #10b981; 
         }
 
         .status-text {
             font-size: 0.85rem;
             color: #8fa0dd;
             margin-top: 8px;
+            word-break: break-all;
         }
 
         /* Dropdown ebong Input field */
@@ -82,7 +94,7 @@
             margin-bottom: 10px;
         }
 
-        /* Action buttons (Send, Swap, Bridge) */
+        /* Action buttons (Send, Swap, Bridge, Liquidity, Stake) */
         .btn-action {
             background-color: #4338ca;
             color: white;
@@ -110,6 +122,13 @@
         .balance-item strong {
             font-size: 1.1rem;
         }
+
+        /* Liquidity Grid Column Setup */
+        .liquidity-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
     </style>
 </head>
 <body>
@@ -120,8 +139,8 @@
     </div>
 
     <div class="card">
-        <button class="btn-connect">Connect Wallet</button>
-        <div class="status-text">Not Connected</div>
+        <button id="connectBtn" class="btn-connect">Connect Wallet</button>
+        <div id="walletStatus" class="status-text">Not Connected</div>
     </div>
 
     <div class="card">
@@ -171,6 +190,83 @@
         <input type="text" placeholder="Amount">
         <button class="btn-action">Bridge</button>
     </div>
+
+    <div class="card">
+        <label>Liquidity</label>
+        <div class="liquidity-grid">
+            <div>
+                <span style="font-size: 0.85rem; color:#8fa0dd; display:block; margin-bottom:5px;">Add Liquidity</span>
+                <input type="text" placeholder="Token A">
+                <input type="text" placeholder="Token B">
+                <button class="btn-action">Add</button>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color:#8fa0dd; display:block; margin-bottom:5px;">Remove Liquidity</span>
+                <input type="text" placeholder="LP Token">
+                <button class="btn-action" style="background-color: #3b30b4;">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <label>Stake</label>
+        <input type="text" placeholder="Amount">
+        <button class="btn-action">Stake</button>
+    </div>
+
+
+    <script>
+        const connectBtn = document.getElementById('connectBtn');
+        const walletStatus = document.getElementById('walletStatus');
+
+        // Connection function
+        async function initWalletConnect() {
+            // Browser-e MetaMask ba kono extension ache kina check korbe
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    walletStatus.innerText = "Connecting...";
+                    
+                    // Request wallet account access
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const userAddress = accounts[0];
+                    
+                    // Address tike choto kore dekhano (Ex: 0x1234...abcd)
+                    const dottedAddress = userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
+                    
+                    // UI dynamic changes
+                    connectBtn.innerText = "Wallet Connected";
+                    connectBtn.classList.add('connected');
+                    walletStatus.innerText = "Connected Account: " + dottedAddress;
+                    
+                    console.log("Connected successfully to address:", userAddress);
+                } catch (err) {
+                    console.error("User denied account access or error occurred:", err);
+                    walletStatus.innerText = "Connection rejected.";
+                    connectBtn.innerText = "Connect Wallet";
+                }
+            } else {
+                // Extension na thakle warning dekhabe
+                walletStatus.innerText = "Wallet extension not found! Please install MetaMask.";
+                alert("Please install MetaMask extension to connect your wallet.");
+            }
+        }
+
+        // Button click event listener
+        connectBtn.addEventListener('click', initWalletConnect);
+
+        // Auto check if already connected on page refresh
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                const activeAccounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (activeAccounts.length > 0) {
+                    const dottedAddress = activeAccounts[0].substring(0, 6) + "..." + activeAccounts[0].substring(activeAccounts[0].length - 4);
+                    connectBtn.innerText = "Wallet Connected";
+                    connectBtn.classList.add('connected');
+                    walletStatus.innerText = "Connected Account: " + dottedAddress;
+                }
+            }
+        });
+    </script>
 
 </body>
 </html>
