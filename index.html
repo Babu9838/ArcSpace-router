@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArcSpace PRO Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        /* Dashboard er main background ebong font */
+        /* ড্যাশবোর্ডের ব্যাকগ্রাউন্ড এবং মূল ফন্ট */
         body {
-            background-color: #0d1321; /* Dark theme background */
+            background-color: #0d1321;
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
         }
 
-        /* Header container (Logo ebong text ekline-e rakhar jonno) */
+        /* হেডার কন্টেইনার */
         .dashboard-header {
             display: flex;
             align-items: center; 
@@ -22,7 +23,7 @@
             margin-bottom: 25px;
         }
 
-        /* Logo Style */
+        /* লোগো স্টাইল */
         .dashboard-logo {
             width: 32px;         
             height: 32px;
@@ -30,7 +31,7 @@
             object-fit: cover;
         }
 
-        /* Heading Text Style */
+        /* হেডিং টেক্সট স্টাইল */
         .dashboard-title {
             font-size: 1.35rem;
             font-weight: 600;
@@ -38,7 +39,7 @@
             margin: 0;
         }
 
-        /* Card ba Section Design */
+        /* কার্ড বা সেকশন ডিজাইন */
         .card {
             background-color: #131a2e;
             border-radius: 8px;
@@ -47,7 +48,7 @@
             border: 1px solid #1e2942;
         }
 
-        /* Connect Wallet Button Style */
+        /* কানেক্ট ওয়ালেট বাটন স্টাইল */
         .btn-connect {
             background-color: #3b30b4;
             color: white;
@@ -64,7 +65,6 @@
             background-color: #4c3ee3;
         }
 
-        /* Wallet connect hole button er shobuj color style */
         .btn-connect.connected {
             background-color: #10b981; 
         }
@@ -76,7 +76,7 @@
             word-break: break-all;
         }
 
-        /* Dropdown ebong Input field */
+        /* ড্রপডাউন এবং ইনপুট ফিল্ড */
         label {
             display: block;
             font-size: 0.9rem;
@@ -95,11 +95,7 @@
             font-family: inherit;
         }
 
-        select {
-            cursor: pointer;
-        }
-
-        /* Action buttons */
+        /* অ্যাকশন বাটনসমূহ */
         .btn-action {
             background-color: #4338ca;
             color: white;
@@ -110,7 +106,7 @@
             font-size: 0.85rem;
         }
 
-        /* Balance Layout */
+        /* ব্যালেন্স গ্রিড লেআউট */
         .balance-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -126,9 +122,10 @@
 
         .balance-item strong {
             font-size: 1.1rem;
+            color: #ffffff;
         }
 
-        /* Liquidity Grid Column Setup */
+        /* লিকুইডিটি গ্রিড লেআউট */
         .liquidity-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -151,25 +148,28 @@
     <div class="card">
         <label for="networkSelect">Network Switch</label>
         <select id="networkSelect">
-            <option value="0x1f4" selected>Arc Testnet</option> <option value="0xaa36a7">Sepolia Testnet</option> <option value="0x66eee">Arbitrum Sepolia</option> </select>
+            <option value="0x1f4" selected>Arc Testnet</option>
+            <option value="0xaa36a7">Sepolia Testnet</option>
+            <option value="0x66eee">Arbitrum Sepolia</option>
+        </select>
         <div id="networkStatus" class="status-text" style="color: #e11d48;"></div>
     </div>
 
     <div class="card">
         <label>Unified Balance</label>
-        <div style="font-size: 0.9rem; margin-bottom: 10px;">ETH: 0</div>
+        <div style="font-size: 0.9rem; margin-bottom: 10px;">ETH: <strong id="ethBalance">0</strong></div>
         <div class="balance-grid">
             <div class="balance-item">
                 <span>USDC</span>
-                <strong>0</strong>
+                <strong id="usdcBalance">0</strong>
             </div>
             <div class="balance-item">
                 <span>EURC</span>
-                <strong>0</strong>
+                <strong id="eurcBalance">0</strong>
             </div>
             <div class="balance-item">
                 <span>cirBTC</span>
-                <strong>0</strong>
+                <strong id="cirBtcBalance">0</strong>
             </div>
         </div>
     </div>
@@ -226,40 +226,82 @@
         const networkSelect = document.getElementById('networkSelect');
         const networkStatus = document.getElementById('networkStatus');
 
-        let isConnected = false;
+        // ব্যালেন্স দেখানোর DOM এলিমেন্টসমূহ
+        const ethBalanceEl = document.getElementById('ethBalance');
+        const usdcBalanceEl = document.getElementById('usdcBalance');
+        const eurcBalanceEl = document.getElementById('eurcBalance');
+        const cirBtcBalanceEl = document.getElementById('cirBtcBalance');
 
-        // Custom Network Configuration (Arc Testnet jodi MetaMask e add na thake tar data)
-        const networkParams = {
-            "0x1f4": {
-                chainId: "0x1f4",
-                chainName: "Arc Testnet",
-                rpcUrls: ["https://rpc.arc-testnet.io"], // Ekhane apnar actual RPC url hobe
-                nativeCurrency: { name: "ARC", symbol: "ARC", decimals: 18 },
-                blockExplorerUrls: ["https://explorer.arc-testnet.io"]
-            },
-            "0xaa36a7": {
-                chainId: "0xaa36a7",
-                chainName: "Sepolia Testnet",
-                rpcUrls: ["https://rpc.sepolia.org"],
-                nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
-                blockExplorerUrls: ["https://sepolia.etherscan.io"]
-            },
-            "0x66eee": {
-                chainId: "0x66eee",
-                chainName: "Arbitrum Sepolia",
-                rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
-                nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-                blockExplorerUrls: ["https://sepolia.arbiscan.io"]
-            }
+        let isConnected = false;
+        let userAddress = "";
+
+        // ERC-20 টোকেনের ব্যালেন্স চেক করার মিনিমাম ABI 
+        const minABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function decimals() view returns (uint8)"
+        ];
+
+        // আপনার নেটওয়ার্ক অনুযায়ী টোকেন কন্ট্রাক্ট অ্যাড্রেসগুলো এখানে বসাবেন (নিচে ডেমো দেওয়া হলো)
+        const tokenAddresses = {
+            "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", // ডেমো সেপোলিয়া USDC অ্যাড্রেস
+            "EURC": "0x0000000000000000000000000000000000000000", // আপনার টোকেন অ্যাড্রেস বসাবেন
+            "cirBTC": "0x0000000000000000000000000000000000000000" // আপনার টোকেন অ্যাড্রেস বসাবেন
         };
 
-        // Wallet Connection Function
+        // ব্যালেন্স ফetch করার মূল ফাংশন
+        async function fetchBalances() {
+            if (!isConnected || !userAddress) return;
+
+            try {
+                // ব্রাউজার প্রোভাইডার সেটআপ (Ethers v6)
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                
+                // ১. নেটওয়ার্কের মেইন টোকেন (ETH) ব্যালেন্স গেট করা
+                const rawEthBalance = await provider.getBalance(userAddress);
+                ethBalanceEl.innerText = parseFloat(ethers.formatEther(rawEthBalance)).toFixed(4);
+
+                // ২. USDC ব্যালেন্স গেট করা
+                if (tokenAddresses.USDC !== "0x0000000000000000000000000000000000000000") {
+                    const usdcContract = new ethers.Contract(tokenAddresses.USDC, minABI, provider);
+                    const usdcBal = await usdcContract.balanceOf(userAddress);
+                    // সাধারণত USDC এর ডেসিমেল ৬ হয়, অন্য টোকেনের ১৮ হতে পারে
+                    usdcBalanceEl.innerText = parseFloat(ethers.formatUnits(usdcBal, 6)).toFixed(2); 
+                }
+
+                // ৩. EURC ব্যালেন্স গেট করা
+                if (tokenAddresses.EURC !== "0x0000000000000000000000000000000000000000") {
+                    const eurcContract = new ethers.Contract(tokenAddresses.EURC, minABI, provider);
+                    const eurcBal = await eurcContract.balanceOf(userAddress);
+                    eurcBalanceEl.innerText = parseFloat(ethers.formatUnits(eurcBal, 18)).toFixed(2);
+                }
+
+                // ৪. cirBTC ব্যালেন্স গেট করা
+                if (tokenAddresses.cirBTC !== "0x0000000000000000000000000000000000000000") {
+                    const cirBtcContract = new ethers.Contract(tokenAddresses.cirBTC, minABI, provider);
+                    const cirBtcBal = await cirBtcContract.balanceOf(userAddress);
+                    cirBtcBalanceEl.innerText = parseFloat(ethers.formatUnits(cirBtcBal, 18)).toFixed(4);
+                }
+
+            } catch (err) {
+                console.error("Error fetching balances:", err);
+            }
+        }
+
+        // ব্যালেন্স রিসেট ফাংশন (ডিসকানেক্ট হলে)
+        function resetBalances() {
+            ethBalanceEl.innerText = "0";
+            usdcBalanceEl.innerText = "0";
+            eurcBalanceEl.innerText = "0";
+            cirBtcBalanceEl.innerText = "0";
+        }
+
+        // ওয়ালেট কানেক্ট ফাংশন
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     walletStatus.innerText = "Connecting...";
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const userAddress = accounts[0];
+                    userAddress = accounts[0];
                     const dottedAddress = userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
                     
                     connectBtn.innerText = "Wallet Connected";
@@ -267,8 +309,8 @@
                     walletStatus.innerText = "Connected: " + dottedAddress;
                     isConnected = true;
 
-                    // Connection er por active network check kora
                     checkCurrentNetwork();
+                    fetchBalances(); // কানেক্ট হওয়ার সাথে সাথে ব্যালেন্স লোড হবে
                 } catch (err) {
                     console.error(err);
                     walletStatus.innerText = "Connection rejected.";
@@ -280,82 +322,63 @@
             }
         }
 
-        // Current Network Check Function
+        // বর্তমান নেটওয়ার্ক চেক
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                
-                // Select element-ke wallet er actual chain standard e sync kora
                 if (document.querySelector(`#networkSelect option[value="${currentChainId}"]`)) {
                     networkSelect.value = currentChainId;
-                    networkStatus.innerText = ""; // Clear errors
+                    networkStatus.innerText = "";
+                    fetchBalances(); // নেটওয়ার্ক বদলালে ব্যালেন্স রি-লোড হবে
                 } else {
-                    networkStatus.innerText = "Unsupported Network! Please switch from dropdown.";
+                    networkStatus.innerText = "Unsupported Network! Please switch.";
                 }
             }
         }
 
-        // Network Switch Function
+        // নেটওয়ার্ক সুইচ করা
         async function switchNetwork(chainId) {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
-                    // Prothome check korbe common network kina (Hex parameter diye switch request)
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: chainId }],
                     });
                     networkStatus.innerText = "";
                 } catch (switchError) {
-                    // Jodi network MetaMask e add na thake (Error code: 4902)
-                    if (switchError.code === 4902) {
-                        try {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [networkParams[chainId]],
-                            });
-                            networkStatus.innerText = "";
-                        } catch (addError) {
-                            console.error("Could not add network:", addError);
-                        }
-                    } else {
-                        console.error("Could not switch network:", switchError);
-                        // Switch fail hole wallet er real network e dropdown back korbe
-                        checkCurrentNetwork();
-                    }
+                    console.error("Could not switch network:", switchError);
+                    checkCurrentNetwork();
                 }
             } else if (!isConnected) {
                 alert("Please connect your wallet first!");
-                networkSelect.value = "0x1f4"; // Default back to Arc
+                networkSelect.value = "0x1f4";
             }
         }
 
-        // Event Listeners
+        // ইভেন্ট লিসেনারস
         connectBtn.addEventListener('click', initWalletConnect);
-        
-        networkSelect.addEventListener('change', (e) => {
-            switchNetwork(e.target.value);
-        });
+        networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
 
-        // Wallet active chain change hole autodetect hobe
         if (typeof window.ethereum !== 'undefined') {
-            window.ethereum.on('chainChanged', (chainId) => {
-                networkSelect.value = chainId;
+            window.ethereum.on('chainChanged', () => {
                 checkCurrentNetwork();
             });
             window.ethereum.on('accountsChanged', (accounts) => {
                 if(accounts.length === 0) {
                     isConnected = false;
+                    userAddress = "";
                     connectBtn.innerText = "Connect Wallet";
                     connectBtn.classList.remove('connected');
                     walletStatus.innerText = "Not Connected";
-                    networkStatus.innerText = "";
+                    resetBalances();
                 } else {
+                    userAddress = accounts[0];
                     initWalletConnect();
                 }
             });
         }
 
-        // Auto check on page reload
+        // পেজ রিলোড হলে অটো-কানেক্ট চেক
         window.addEventListener('load', async () => {
             if (typeof window.ethereum !== 'undefined') {
                 const activeAccounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -365,6 +388,5 @@
             }
         });
     </script>
-
 </body>
 </html>
