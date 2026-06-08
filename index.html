@@ -198,7 +198,12 @@
 
     <div class="card">
         <label>Swap</label>
-        <select><option>USDC</option></select>
+        <select id="swapTokenSelect">
+            <option value="USDC">USDC</option>
+            <option value="ETH">ETH</option>
+            <option value="EURC">EURC</option>
+            <option value="cirBTC">cirBTC</option>
+        </select>
         <input type="text" placeholder="Amount">
         <button class="btn-action">Swap</button>
     </div>
@@ -222,7 +227,8 @@
             <div>
                 <span style="font-size: 0.85rem; color:#8fa0dd; display:block; margin-bottom:5px;">Remove Liquidity</span>
                 <input type="text" placeholder="LP Token">
-                <button class="btn-action" style="background-color: #3b30b4;">Remove</button>
+                <button class="btn-action"
+ style="background-color: #3b30b4;">Remove</button>
     <script>
         const connectBtn = document.getElementById('connectBtn');
         const walletStatus = document.getElementById('walletStatus');
