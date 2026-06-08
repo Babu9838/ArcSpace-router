@@ -153,7 +153,7 @@
     <div class="card">
         <label for="networkSelect">Network Switch</label>
         <select id="networkSelect">
-            <option value="0x1f4">Arc Testnet</option>
+            <option value="0x4ceeaa">Arc Testnet</option>
             <option value="0xaa36a7">Sepolia Testnet</option>
             <option value="0x66eee">Arbitrum Sepolia</option>
         </select>
@@ -255,14 +255,18 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Complete detailed parameters registry for accurate wallet detection
+        // Official Circle Network Parameters Specification (Fixed IDs and parameters)
         const networkParams = {
-            "0x1f4": { 
-                chainId: "0x1f4", 
+            "0x4ceeaa": { 
+                chainId: "0x4ceeaa", 
                 chainName: "Arc Testnet",
-                rpcUrls: ["https://rpc.arc-testnet.io"],
-                nativeCurrency: { name: "ARC", symbol: "ARC", decimals: 18 },
-                blockExplorerUrls: ["https://explorer.arc-testnet.io"]
+                rpcUrls: ["https://rpc.testnet.arc.network"],
+                nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
+                blockExplorerUrls: ["https://testnet.arcscan.app"]
+            },
+            "5042002": { 
+                chainId: "0x4ceeaa", 
+                chainName: "Arc Testnet"
             },
             "0xaa36a7": { 
                 chainId: "0xaa36a7", 
@@ -271,17 +275,25 @@
                 nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
                 blockExplorerUrls: ["https://sepolia.etherscan.io"]
             },
+            "11155111": { 
+                chainId: "0xaa36a7", 
+                chainName: "Sepolia Testnet"
+            },
             "0x66eee": { 
                 chainId: "0x66eee", 
                 chainName: "Arbitrum Sepolia",
                 rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
                 nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
                 blockExplorerUrls: ["https://sepolia.arbiscan.io"]
+            },
+            "421614": { 
+                chainId: "0x66eee", 
+                chainName: "Arbitrum Sepolia"
             }
         };
 
         const tokenAddresses = {
-            "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+            "USDC": "0x3600000000000000000000000000000000000000", // Official Arc Native USDC Contract Address
             "EURC": "0x0000000000000000000000000000000000000000",
             "cirBTC": "0x0000000000000000000000000000000000000000"
         };
@@ -401,15 +413,15 @@
             } else { walletStatus.innerText = "MetaMask not found!"; }
         }
 
-        // Deep cross-checking engine module
+        // Deep production verification engine (Uses real Chain IDs)
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                 let cleanChainId = String(currentChainId).toLowerCase().trim();
 
-                // Standard clean formatting adjustment (hex lengths)
-                if (cleanChainId === "0x01f4" || cleanChainId === "500") {
-                    cleanChainId = "0x1f4";
+                // Convert zero padded hex lengths or decimal to map index
+                if (cleanChainId === "0x04ceeaa" || cleanChainId === "5042002" || cleanChainId === "0x4ceeaa") {
+                    cleanChainId = "0x4ceeaa";
                 } else if (cleanChainId === "11155111") {
                     cleanChainId = "0xaa36a7";
                 } else if (cleanChainId === "421614") {
@@ -418,47 +430,46 @@
 
                 if (networkParams[cleanChainId]) {
                     networkSelect.value = cleanChainId;
-                    networkStatus.style.color = "#10b981"; // Success Green
+                    networkStatus.style.color = "#10b981"; // Success Green Text
                     networkStatus.innerText = "Network verified: " + networkParams[cleanChainId].chainName;
                 } else {
-                    networkStatus.style.color = "#e11d48"; // Red warning
+                    networkStatus.style.color = "#e11d48"; // Red Warning
                     networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
                 }
                 fetchBalances();
             }
         }
 
-        // Fixed Auto Popup Network Switcher and Adder Engine
+        // Live Dynamic Switch & Network-Add Module
         async function switchNetwork(chainId) {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
-                    // Try to direct switch network via prompt
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: chainId }],
                     });
                     networkStatus.innerText = "";
                 } catch (switchError) {
-                    // Error code 4902 means the chain is missing from MetaMask, triggering addition popup
+                    // Triggers automated popup addition if missing from wallet database
                     if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902) || (switchError.message && switchError.message.includes("4902"))) {
                         try {
-                            // Automatically triggers the MetaMask Add Node UI window
+                            const fullDataPayload = networkParams[chainId];
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
-                                params: [networkParams[chainId]],
+                                params: [fullDataPayload],
                             });
                             networkStatus.innerText = "";
                         } catch (addError) {
-                            console.error("Failed adding node info:", addError);
+                            console.error("Failed adding node payload:", addError);
                         }
                     } else {
-                        console.error("Wallet error:", switchError);
+                        console.error("Wallet execution error:", switchError);
                     }
                 }
-                setTimeout(checkCurrentNetwork, 500);
+                setTimeout(checkCurrentNetwork, 600);
             } else if (!isConnected) {
                 alert("Please connect your wallet first!");
-                networkSelect.value = "0x1f4";
+                networkSelect.value = "0x4ceeaa";
             }
         }
 
@@ -479,12 +490,4 @@
             });
         }
 
-        window.addEventListener('load', async () => {
-            if (typeof window.ethereum !== 'undefined') {
-                const activeAccounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (activeAccounts.length > 0) { initWalletConnect(); }
-            }
-        });
-    </script>
-</body>
-</html>
+        windo
