@@ -5,39 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArcSpace PRO Dashboard</title>
     <style>
-        /* পুরো ড্যাশবোর্ডের ব্যাকগ্রাউন্ড এবং মূল ফন্ট */
+        /* Dashboard er main background ebong font */
         body {
-            background-color: #0d1321; /* ডার্ক থিম ব্যাকগ্রাউন্ড */
+            background-color: #0d1321; /* Dark theme background */
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
         }
 
-        /* হেডার কন্টেইনার (লোগো এবং টেক্সট একসাথে রাখার জন্য) */
+        /* Header container (Logo ebong text ekline-e rakhar jonno) */
         .dashboard-header {
             display: flex;
-            align-items: center; /* লোগো এবং টেক্সট সোজা লাইনে রাখার জন্য */
-            gap: 12px;           /* লোগো ও লেখার মাঝখানের দূরত্ব */
+            align-items: center; /* Vertical alignment center rakhar jonno */
+            gap: 15px;           /* Logo ebong text er makkhaner gapping */
             margin-bottom: 25px;
         }
 
-        /* লোগো স্টাইল */
+        /* Notun Logo Style */
         .dashboard-logo {
-            width: 28px;         /* লোগোর সাইজ */
-            height: 28px;
+            width: 45px;         /* Notun logo tir details bujhar jonno thikthak size */
+            height: auto;
+            border-radius: 6px;  /* Edge gulo thik rakhar jonno options */
             object-fit: contain;
         }
 
-        /* হেডিং টেক্সট স্টাইল */
+        /* Heading Text Style */
         .dashboard-title {
-            font-size: 1.25rem;
+            font-size: 1.35rem;
             font-weight: 600;
             letter-spacing: 0.5px;
             margin: 0;
         }
 
-        /* কার্ড বা সেকশন ডিজাইন (আপনার ইমেজের মতো) */
+        /* Card ba Section Design (Ager motoi) */
         .card {
             background-color: #131a2e;
             border-radius: 8px;
@@ -46,7 +47,7 @@
             border: 1px solid #1e2942;
         }
 
-        /* কানেক্ট ওয়ালেট বাটন */
+        /* Connect Wallet Button */
         .btn-connect {
             background-color: #3b30b4;
             color: white;
@@ -63,7 +64,7 @@
             margin-top: 8px;
         }
 
-        /* ড্রপডাউন এবং ইনপুট ফিল্ড */
+        /* Dropdown ebong Input field */
         label {
             display: block;
             font-size: 0.9rem;
@@ -81,7 +82,7 @@
             margin-bottom: 10px;
         }
 
-        /* অ্যাকশন বাটনসমূহ (Send, Swap, Bridge ইত্যাদি) */
+        /* Action buttons (Send, Swap, Bridge) */
         .btn-action {
             background-color: #4338ca;
             color: white;
@@ -92,7 +93,7 @@
             font-size: 0.85rem;
         }
 
-        /* ব্যালেন্স গ্রিড লেআউট */
+        /* Balance Layout */
         .balance-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -114,7 +115,7 @@
 <body>
 
     <div class="dashboard-header">
-        <img src="1000236378.jpg" alt="ArcSpace Logo" class="dashboard-logo">
+        <img src="1000226649.jpg" alt="ArcSpace New Logo" class="dashboard-logo">
         <h1 class="dashboard-title">ArcSpace PRO Dashboard</h1>
     </div>
 
