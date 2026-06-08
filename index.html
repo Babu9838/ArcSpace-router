@@ -223,16 +223,6 @@
                 <span style="font-size: 0.85rem; color:#8fa0dd; display:block; margin-bottom:5px;">Remove Liquidity</span>
                 <input type="text" placeholder="LP Token">
                 <button class="btn-action" style="background-color: #3b30b4;">Remove</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <label>Stake</label>
-        <input type="text" placeholder="Amount">
-        <button class="btn-action">Stake</button>
-    </div>
-
     <script>
         const connectBtn = document.getElementById('connectBtn');
         const walletStatus = document.getElementById('walletStatus');
@@ -255,7 +245,6 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Universal Network Parameters Configuration Registry
         const networkParams = {
             "0x4cef52": { 
                 chainId: "0x4cef52", 
@@ -302,7 +291,6 @@
                 }
                 ethBalanceEl.innerText = currentEth.toFixed(4);
 
-                // USDC
                 if (tokenAddresses.USDC !== "0x0000000000000000000000000000000000000000") {
                     try {
                         const contract = new ethers.Contract(tokenAddresses.USDC, erc20ABI, provider);
@@ -311,7 +299,6 @@
                     } catch(e) { usdcBalanceEl.innerText = "120.00"; }
                 } else { usdcBalanceEl.innerText = "120.00"; }
 
-                // EURC
                 if (tokenAddresses.EURC !== "0x0000000000000000000000000000000000000000") {
                     try {
                         const contract = new ethers.Contract(tokenAddresses.EURC, erc20ABI, provider);
@@ -320,7 +307,6 @@
                     } catch(e) { eurcBalanceEl.innerText = "85.00"; }
                 } else { eurcBalanceEl.innerText = "85.00"; }
 
-                // cirBTC
                 if (tokenAddresses.cirBTC !== "0x0000000000000000000000000000000000000000") {
                     try {
                         const contract = new ethers.Contract(tokenAddresses.cirBTC, erc20ABI, provider);
@@ -350,17 +336,16 @@
 
             try {
                 transferStatus.style.color = "#38bdf8";
-                transferStatus.innerText = `Confirming ${token} transaction inside Wallet...`;
-
+                transferStatus.innerText = `Confirming ${token} transaction...`;
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
 
                 if (token === "ETH") {
                     const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
-                    transferStatus.innerText = "Pending confirmations... Hash: " + tx.hash.substring(0, 10);
+                    transferStatus.innerText = "Pending... Hash: " + tx.hash.substring(0, 10);
                     await tx.wait();
                     transferStatus.style.color = "#10b981";
-                    transferStatus.innerText = `Successfully transferred ${amount} ETH.`;
+                    transferStatus.innerText = `Transferred ${amount} ETH successfully.`;
                 } else {
                     const contractAddress = tokenAddresses[token];
                     if (contractAddress === "0x0000000000000000000000000000000000000000") {
@@ -375,7 +360,7 @@
                     const tx = await contract.transfer(receiver, ethers.parseUnits(amount, decimals));
                     await tx.wait();
                     transferStatus.style.color = "#10b981";
-                    transferStatus.innerText = `Successfully transferred ${amount} ${token}.`;
+                    transferStatus.innerText = `Transferred ${amount} ${token} successfully.`;
                 }
                 fetchBalances();
             } catch (error) {
@@ -384,65 +369,50 @@
             }
         }
 
-        // 100% Fixed Open Handshake Endpoint Trigger
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     walletStatus.style.color = "#8fa0dd";
-                    walletStatus.innerText = "Requesting extension handshake...";
-                    
-                    // Standard EVM trigger method to query extensions directly
+                    walletStatus.innerText = "Opening Real Extension Popup Window...";
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
-                    
                     connectBtn.innerText = "Wallet Connected";
                     connectBtn.classList.add('connected');
                     walletStatus.innerText = "Connected: " + userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
-                    
                     isConnected = true;
                     checkCurrentNetwork();
                 } catch (err) {
-                    console.error("Interface execution dropped:", err);
                     walletStatus.style.color = "#e11d48";
-                    walletStatus.innerText = "Connection rejected or closed.";
+                    walletStatus.innerText = "Connection rejected.";
                 }
             } else { 
                 walletStatus.style.color = "#e11d48";
-                walletStatus.innerText = "Error: Multi-Chain provider not found!"; 
+                walletStatus.innerText = "EVM extension wallet not found!"; 
             }
         }
 
-        // Sanitized Numeric Calculation Engine for Chain ID Parsing
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
                     const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                     let numericId = parseInt(currentChainId, 16);
-                    if (isNaN(numericId)) {
-                        numericId = parseInt(currentChainId, 10);
-                    }
+                    if (isNaN(numericId)) numericId = parseInt(currentChainId, 10);
 
                     let cleanHexKey = "";
-                    if (numericId === 5042002) {
-                        cleanHexKey = "0x4cef52";
-                    } else if (numericId === 11155111) {
-                        cleanHexKey = "0xaa36a7";
-                    } else if (numericId === 421614) {
-                        cleanHexKey = "0x66eee";
-                    }
+                    if (numericId === 5042002) cleanHexKey = "0x4cef52";
+                    else if (numericId === 11155111) cleanHexKey = "0xaa36a7";
+                    else if (numericId === 421614) cleanHexKey = "0x66eee";
 
                     if (cleanHexKey && networkParams[cleanHexKey]) {
                         networkSelect.value = cleanHexKey;
-                        networkStatus.style.color = "#10b981"; // Success Green Tag
+                        networkStatus.style.color = "#10b981";
                         networkStatus.innerText = "Network verified: " + networkParams[cleanHexKey].chainName;
                     } else {
-                        networkStatus.style.color = "#e11d48"; // Warning Red Tag
-                        networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
+                        networkStatus.style.color = "#e11d48";
+                        networkStatus.innerText = "Unsupported Chain connected in Wallet!";
                     }
                     fetchBalances();
-                } catch (e) {
-                    console.error("Failed fetching dynamic provider thread:", e);
-                }
+                } catch (e) { console.error(e); }
             }
         }
 
@@ -463,9 +433,7 @@
                                 params: [networkPayload],
                             });
                             networkStatus.innerText = "";
-                        } catch (addError) {
-                            console.error("Auto configuration node dropped:", addError);
-                        }
+                        } catch (addError) { console.error(addError); }
                     }
                 }
                 setTimeout(checkCurrentNetwork, 500);
@@ -475,12 +443,10 @@
             }
         }
 
-        // Core UI Events Linking
         connectBtn.addEventListener('click', initWalletConnect);
         networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
         sendBtn.addEventListener('click', handleTokenTransfer);
 
-        // Core extension listener handlers setup
         if (typeof window.ethereum !== 'undefined') {
             window.ethereum.on('chainChanged', () => checkCurrentNetwork());
             window.ethereum.on('accountsChanged', (accs) => {
@@ -488,4 +454,21 @@
                     isConnected = false;
                     connectBtn.innerText = "Connect Wallet";
                     connectBtn.classList.remove('connected');
-                    walletStatus.innerText = "Not Conn
+                    walletStatus.innerText = "Not Connected";
+                    networkStatus.innerText = "";
+                } else { userAddress = accs[0]; isConnected = true; checkCurrentNetwork(); }
+            });
+        }
+    </script>
+</body>
+</html>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <label>Stake</label>
+        <input type="text" placeholder="Amount">
+        <button class="btn-action">Stake</button>
+    </div>
