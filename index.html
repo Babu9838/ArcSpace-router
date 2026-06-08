@@ -1,255 +1,175 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ArcSpace PRO</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArcSpace PRO Dashboard</title>
+    <style>
+        /* পুরো ড্যাশবোর্ডের ব্যাকগ্রাউন্ড এবং মূল ফন্ট */
+        body {
+            background-color: #0d1321; /* ডার্ক থিম ব্যাকগ্রাউন্ড */
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+        /* হেডার কন্টেইনার (লোগো এবং টেক্সট একসাথে রাখার জন্য) */
+        .dashboard-header {
+            display: flex;
+            align-items: center; /* লোগো এবং টেক্সট সোজা লাইনে রাখার জন্য */
+            gap: 12px;           /* লোগো ও লেখার মাঝখানের দূরত্ব */
+            margin-bottom: 25px;
+        }
 
-<style>
-body{margin:0;font-family:Arial;background:#0b0f19;color:white}
-.container{padding:15px}
+        /* লোগো স্টাইল */
+        .dashboard-logo {
+            width: 28px;         /* লোগোর সাইজ */
+            height: 28px;
+            object-fit: contain;
+        }
 
-.card{
-  background:#111827;
-  padding:15px;
-  border-radius:12px;
-  margin:10px 0;
-}
+        /* হেডিং টেক্সট স্টাইল */
+        .dashboard-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
 
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
+        /* কার্ড বা সেকশন ডিজাইন (আপনার ইমেজের মতো) */
+        .card {
+            background-color: #131a2e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border: 1px solid #1e2942;
+        }
 
-@media(max-width:768px){
-  .grid{grid-template-columns:1fr}
-}
+        /* কানেক্ট ওয়ালেট বাটন */
+        .btn-connect {
+            background-color: #3b30b4;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
 
-input,select{
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  border-radius:8px;
-  border:none;
-}
+        .status-text {
+            font-size: 0.85rem;
+            color: #8fa0dd;
+            margin-top: 8px;
+        }
 
-button{
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  background:#4f46e5;
-  color:white;
-  cursor:pointer;
-  margin-top:8px;
-}
+        /* ড্রপডাউন এবং ইনপুট ফিল্ড */
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: #8fa0dd;
+            margin-bottom: 8px;
+        }
 
-.small{opacity:0.7;font-size:12px}
-</style>
+        select, input {
+            width: 100%;
+            padding: 10px;
+            background-color: #ffffff;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        /* অ্যাকশন বাটনসমূহ (Send, Swap, Bridge ইত্যাদি) */
+        .btn-action {
+            background-color: #4338ca;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        /* ব্যালেন্স গ্রিড লেআউট */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .balance-item span {
+            display: block;
+            font-size: 0.85rem;
+            color: #8fa0dd;
+        }
+
+        .balance-item strong {
+            font-size: 1.1rem;
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="container">
-
-<h2>🚀 ArcSpace PRO Dashboard</h2>
-
-<!-- WALLET -->
-<div class="card">
-  <button onclick="connectWallet()">Connect Wallet</button>
-  <p id="wallet">Not Connected</p>
-</div>
-
-<!-- NETWORK -->
-<div class="card">
-  <h3>Network Switch</h3>
-  <select id="network">
-    <option>Arc Testnet</option>
-    <option>Ethereum</option>
-    <option>Sepolia</option>
-    <option>Arbitrum</option>
-  </select>
-</div>
-
-<!-- UNIFIED BALANCE -->
-<div class="card">
-  <h3>Unified Balance</h3>
-  <p id="eth">ETH: 0</p>
-
-  <div class="grid">
-    <div class="card">USDC<br><b id="usdc">0</b></div>
-    <div class="card">EURC<br><b id="eurc">0</b></div>
-    <div class="card">cirBTC<br><b id="btc">0</b></div>
-  </div>
-</div>
-
-<!-- TOKEN TRANSFER -->
-<div class="card">
-  <h3>Token Transfer</h3>
-  <select id="token">
-    <option>USDC</option>
-    <option>EURC</option>
-    <option>cirBTC</option>
-  </select>
-
-  <input id="to" placeholder="Receiver">
-  <input id="amount" placeholder="Amount">
-
-  <button onclick="sendToken()">Send</button>
-</div>
-
-<!-- SWAP -->
-<div class="card">
-  <h3>Swap</h3>
-  <select>
-    <option>USDC</option>
-    <option>EURC</option>
-    <option>cirBTC</option>
-  </select>
-
-  <input placeholder="Amount">
-  <button>Swap</button>
-</div>
-
-<!-- BRIDGE -->
-<div class="card">
-  <h3>Bridge</h3>
-  <select>
-    <option>Arc → Ethereum</option>
-    <option>Ethereum → Arbitrum</option>
-    <option>Arc → Sepolia</option>
-  </select>
-
-  <input placeholder="Amount">
-  <button>Bridge</button>
-</div>
-
-<!-- LIQUIDITY -->
-<div class="card">
-  <h3>Liquidity</h3>
-
-  <div class="grid">
-    <div>
-      <h4>Add Liquidity</h4>
-      <input placeholder="Token A">
-      <input placeholder="Token B">
-      <button>Add</button>
+    <div class="dashboard-header">
+        <img src="1000236378.jpg" alt="ArcSpace Logo" class="dashboard-logo">
+        <h1 class="dashboard-title">ArcSpace PRO Dashboard</h1>
     </div>
 
-    <div>
-      <h4>Remove Liquidity</h4>
-      <input placeholder="LP Token">
-      <button>Remove</button>
+    <div class="card">
+        <button class="btn-connect">Connect Wallet</button>
+        <div class="status-text">Not Connected</div>
     </div>
-  </div>
-</div>
 
-<!-- STAKE -->
-<div class="card">
-  <h3>Stake</h3>
-  <input placeholder="Amount">
-  <button>Stake</button>
-</div>
+    <div class="card">
+        <label>Network Switch</label>
+        <select>
+            <option>Arc Testnet</option>
+        </select>
+    </div>
 
-<!-- ANALYTICS -->
-<div class="card">
-  <h3>Analytics</h3>
-  <canvas id="chart" width="300" height="120"></canvas>
-</div>
+    <div class="card">
+        <label>Unified Balance</label>
+        <div style="font-size: 0.9rem; margin-bottom: 10px;">ETH: 0</div>
+        <div class="balance-grid">
+            <div class="balance-item">
+                <span>USDC</span>
+                <strong>0</strong>
+            </div>
+            <div class="balance-item">
+                <span>EURC</span>
+                <strong>0</strong>
+            </div>
+            <div class="balance-item">
+                <span>cirBTC</span>
+                <strong>0</strong>
+            </div>
+        </div>
+    </div>
 
-<!-- SOCIAL -->
-<div class="card">
-  <h3>Social Connect</h3>
-  <button>Twitter</button>
-  <button>Discord</button>
-  <button>GitHub</button>
-</div>
+    <div class="card">
+        <label>Token Transfer</label>
+        <select><option>USDC</option></select>
+        <input type="text" placeholder="Receiver">
+        <input type="text" placeholder="Amount">
+        <button class="btn-action">Send</button>
+    </div>
 
-</div>
+    <div class="card">
+        <label>Swap</label>
+        <select><option>USDC</option></select>
+        <input type="text" placeholder="Amount">
+        <button class="btn-action">Swap</button>
+    </div>
 
-<script>
-
-let provider;
-let signer;
-let user;
-
-const TOKENS = {
-  USDC:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-  EURC:"0x0000000000000000000000000000000000000000",
-  cirBTC:"0x0000000000000000000000000000000000000000"
-};
-
-const ABI = [
-  "function transfer(address to, uint amount) returns (bool)",
-  "function balanceOf(address) view returns (uint)"
-];
-
-// CONNECT
-async function connectWallet(){
-  if(!window.ethereum){
-    alert("Install MetaMask");
-    return;
-  }
-
-  provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = await provider.getSigner();
-  user = await signer.getAddress();
-
-  document.getElementById("wallet").innerText = user;
-
-  loadBalances();
-}
-
-// BALANCES
-async function loadBalances(){
-
-  const ethBal = await provider.getBalance(user);
-  document.getElementById("eth").innerText =
-    "ETH: " + ethers.formatEther(ethBal);
-
-  loadToken("USDC","usdc");
-  loadToken("EURC","eurc");
-  loadToken("cirBTC","btc");
-}
-
-async function loadToken(symbol,id){
-  try{
-    const c = new ethers.Contract(TOKENS[symbol],ABI,provider);
-    const b = await c.balanceOf(user);
-    document.getElementById(id).innerText =
-      ethers.formatUnits(b,6);
-  }catch(e){
-    document.getElementById(id).innerText="0";
-  }
-}
-
-// SEND TOKEN
-async function sendToken(){
-  const token=document.getElementById("token").value;
-  const to=document.getElementById("to").value;
-  const amount=document.getElementById("amount").value;
-
-  const c=new ethers.Contract(TOKENS[token],ABI,signer);
-
-  const tx=await c.transfer(to,ethers.parseUnits(amount,6));
-  await tx.wait();
-
-  alert("Success: "+tx.hash);
-  loadBalances();
-}
-
-// SIMPLE CHART
-const c=document.getElementById("chart");
-const ctx=c.getContext("2d");
-ctx.fillStyle="#4f46e5";
-ctx.fillRect(20,60,40,40);
-ctx.fillRect(80,30,40,70);
-ctx.fillRect(140,50,40,50);
-
-</script>
+    <div class="card">
+        <label>Bridge</label>
+        <select><option>Arc -> Ethereum</option></select>
+        <input type="text" placeholder="Amount">
+        <button class="btn-action">Bridge</button>
+    </div>
 
 </body>
 </html>
