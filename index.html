@@ -153,7 +153,7 @@
     <div class="card">
         <label for="networkSelect">Network Switch</label>
         <select id="networkSelect">
-            <option value="0x4ceeaa">Arc Testnet</option>
+            <option value="0x4cef52">Arc Testnet</option>
             <option value="0xaa36a7">Sepolia Testnet</option>
             <option value="0x66eee">Arbitrum Sepolia</option>
         </select>
@@ -255,10 +255,10 @@
 
         const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
-        // Real Production Multi-Chain Nodes Configuration Map 
+        // Universal Network Mapping Registry - Optimized for strict hex strings
         const networkParams = {
-            "0x4ceeaa": { 
-                chainId: "0x4ceeaa", 
+            "0x4cef52": { 
+                chainId: "0x4cef52", 
                 chainName: "Arc Testnet",
                 rpcUrls: ["https://rpc.testnet.arc.network"],
                 nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
@@ -398,37 +398,43 @@
                 } catch (err) {
                     walletStatus.innerText = "Rejected.";
                 }
-            } else { walletStatus.innerText = "Multi-Chain Wallet not found!"; }
+            } else { walletStatus.innerText = "Wallet extension not found!"; }
         }
 
-        // Real-Time Cross-Chain Mapping Normalization
+        // Sanitized Verification Module (Converts everything to base integer before validation)
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                let cleanChainId = String(currentChainId).toLowerCase().trim();
-
-                // Handles Hex, Decimals, or Mixed Padding across different extensions
-                if (cleanChainId === "0x04ceeaa" || cleanChainId === "5042002" || cleanChainId === "0x4ceeaa") {
-                    cleanChainId = "0x4ceeaa";
-                } else if (cleanChainId === "11155111" || cleanChainId === "0xaa36a7") {
-                    cleanChainId = "0xaa36a7";
-                } else if (cleanChainId === "421614" || cleanChainId === "0x66eee") {
-                    cleanChainId = "0x66eee";
+                
+                // Absolute conversion logic to prevent browser string parsing differences
+                let numericId = parseInt(currentChainId, 16);
+                if (isNaN(numericId)) {
+                    numericId = parseInt(currentChainId, 10);
                 }
 
-                if (networkParams[cleanChainId]) {
-                    networkSelect.value = cleanChainId;
-                    networkStatus.style.color = "#10b981"; // Green Status
-                    networkStatus.innerText = "Network verified: " + networkParams[cleanChainId].chainName;
+                let cleanHexKey = "";
+                if (numericId === 5042002) {
+                    cleanHexKey = "0x4cef52";
+                } else if (numericId === 11155111) {
+                    cleanHexKey = "0xaa36a7";
+                } else if (numericId === 421614) {
+                    cleanHexKey = "0x66eee";
+                }
+
+                if (cleanHexKey && networkParams[cleanHexKey]) {
+                    networkSelect.value = cleanHexKey;
+                    networkStatus.style.color = "#10b981"; // Verified Success (Green Text)
+                    networkStatus.innerText = "Network verified: " + networkParams[cleanHexKey].chainName;
                 } else {
-                    networkStatus.style.color = "#e11d48"; // Red Warning
+                    networkSelect.value = ""; // Reset value for unrecognized chains
+                    networkStatus.style.color = "#e11d48"; // Warning Text (Red)
                     networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
                 }
                 fetchBalances();
             }
         }
 
-        // Auto Intercept Switch & Chain Addition Logic
+        // Direct Execution Prompt Interceptor
         async function switchNetwork(chainId) {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
@@ -438,26 +444,26 @@
                     });
                     networkStatus.innerText = "";
                 } catch (switchError) {
-                    // Trigger custom parameters mapping load if chain isn't registered in the active wallet
+                    // Code 4902 triggers manual data registry popup window injection inside the browser
                     if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902) || (switchError.message && switchError.message.includes("4902"))) {
                         try {
-                            const fullDataPayload = networkParams[chainId];
+                            const networkPayload = networkParams[chainId];
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
-                                params: [fullDataPayload],
+                                params: [networkPayload],
                             });
                             networkStatus.innerText = "";
                         } catch (addError) {
-                            console.error("Failed adding chain node:", addError);
+                            console.error("Manual add operation dropped:", addError);
                         }
                     } else {
-                        console.error("Wallet switch exception:", switchError);
+                        console.error("General runtime chain exception:", switchError);
                     }
                 }
-                setTimeout(checkCurrentNetwork, 600);
+                setTimeout(checkCurrentNetwork, 500);
             } else if (!isConnected) {
                 alert("Please connect your wallet first!");
-                networkSelect.value = "0x4ceeaa";
+                networkSelect.value = "0x4cef52";
             }
         }
 
@@ -480,10 +486,4 @@
 
         window.addEventListener('load', async () => {
             if (typeof window.ethereum !== 'undefined') {
-                const activeAccounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (activeAccounts.length > 0) { initWalletConnect(); }
-            }
-        });
-    </script>
-</body>
-</html>
+                const activeAccounts = await window.ether
