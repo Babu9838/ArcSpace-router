@@ -148,7 +148,7 @@
     <div class="card">
         <label for="networkSelect">Network Switch</label>
         <select id="networkSelect">
-            <option value="0x1f4" selected>Arc Testnet</option> <option value="0xaa36a7">Sepolia Testnet</option> <option value="0x66eee">Arbitrum Sepolia</option> </select>
+            <option value="0x1f4">Arc Testnet</option> <option value="0xaa36a7">Sepolia Testnet</option> <option value="0x66eee">Arbitrum Sepolia</option> </select>
         <div id="networkStatus" class="status-text" style="color: #10b981;"></div>
     </div>
 
@@ -216,7 +216,6 @@
         <button class="btn-action">Stake</button>
     </div>
 
-
     <script>
         const connectBtn = document.getElementById('connectBtn');
         const walletStatus = document.getElementById('walletStatus');
@@ -231,14 +230,12 @@
         let isConnected = false;
         let userAddress = "";
 
-        const minABI = ["function balanceOf(address owner) view returns (uint256)"];
-
-        // Support configuration for 3 networks
+        // Complete support dynamic params block
         const networkParams = {
             "0x1f4": {
                 chainId: "0x1f4",
                 chainName: "Arc Testnet",
-                rpcUrls: ["https://rpc.arc-testnet.io"], // Replace with actual RPC if needed
+                rpcUrls: ["https://rpc.arc-testnet.io"], 
                 nativeCurrency: { name: "ARC", symbol: "ARC", decimals: 18 },
                 blockExplorerUrls: ["https://explorer.arc-testnet.io"]
             },
@@ -258,13 +255,6 @@
             }
         };
 
-        // Dummy token address container
-        const tokenAddresses = {
-            "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-            "EURC": "0x0000000000000000000000000000000000000000",
-            "cirBTC": "0x0000000000000000000000000000000000000000"
-        };
-
         async function fetchBalances() {
             if (!isConnected || !userAddress) return;
             try {
@@ -272,12 +262,12 @@
                 const rawEthBalance = await provider.getBalance(userAddress);
                 ethBalanceEl.innerText = parseFloat(ethers.formatEther(rawEthBalance)).toFixed(4);
 
-                // Default fallback balances if contract is unassigned
+                // Fallback UI data
                 usdcBalanceEl.innerText = "0.00";
                 eurcBalanceEl.innerText = "0.00";
                 cirBtcBalanceEl.innerText = "0.0000";
             } catch (err) {
-                console.error("Balance fetch failed:", err);
+                console.error("Balance loading failed:", err);
             }
         }
 
@@ -305,27 +295,28 @@
             }
         }
 
-        // Active network status control
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                 
-                // standard format conversion to lowercase to avoid match errors
-                const formattedChainId = currentChainId.toLowerCase();
+                // Pure Hex formatting matching setup (handles 0x1f4 vs 0x01f4 padding strings)
+                let cleanChainId = currentChainId.toLowerCase();
+                if (cleanChainId === "0x01f4" || cleanChainId === "0x1f4") {
+                    cleanChainId = "0x1f4"; 
+                }
 
-                if (networkParams[formattedChainId]) {
-                    networkSelect.value = formattedChainId;
-                    networkStatus.style.color = "#10b981"; // Green color
-                    networkStatus.innerText = "Network synced successfully.";
+                if (networkParams[cleanChainId]) {
+                    networkSelect.value = cleanChainId;
+                    networkStatus.style.color = "#10b981"; // Succesful text color green
+                    networkStatus.innerText = "Network verified: " + networkParams[cleanChainId].chainName;
                     fetchBalances();
                 } else {
-                    networkStatus.style.color = "#e11d48"; // Red color
-                    networkStatus.innerText = "Unsupported Network! Please select Arc, Sepolia, or Arbitrum Sepolia.";
+                    networkStatus.style.color = "#e11d48"; // Warning text color red
+                    networkStatus.innerText = "Unsupported Chain/Network connected in Wallet!";
                 }
             }
         }
 
-        // Active trigger to switch chains inside wallet UI
         async function switchNetwork(chainId) {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 try {
@@ -335,8 +326,8 @@
                     });
                     networkStatus.innerText = "";
                 } catch (switchError) {
-                    // If network is absent inside MetaMask (Error 4902), request to add it
-                    if (switchError.code === 4902) {
+                    // Trigger add custom network parameters block directly if chain is blank in client wallet
+                    if (switchError.code === 4902 || (switchError.data && switchError.data.originalError && switchError.data.originalError.code === 4902)) {
                         try {
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
@@ -344,16 +335,16 @@
                             });
                             networkStatus.innerText = "";
                         } catch (addError) {
-                            console.error("Failed to add network:", addError);
+                            console.error("Failed adding node info:", addError);
                         }
                     } else {
-                        console.error("Failed to switch network:", switchError);
+                        console.error("Wallet core error:", switchError);
                         checkCurrentNetwork();
                     }
                 }
             } else if (!isConnected) {
                 alert("Please connect your wallet first!");
-                networkSelect.value = "0x1f4"; // reset to default view if wallet is off
+                networkSelect.value = "0x1f4";
             }
         }
 
