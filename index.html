@@ -271,13 +271,11 @@
         const sendBtn = document.getElementById('sendBtn');
         const transferStatus = document.getElementById('transferStatus');
 
-        // Swap Variables
         const swapPairSelect = document.getElementById('swapPairSelect');
         const swapAmount = document.getElementById('swapAmount');
         const swapBtn = document.getElementById('swapBtn');
         const swapStatus = document.getElementById('swapStatus');
 
-        // Bridge Node Reference Elements
         const bridgeRouteSelect = document.getElementById('bridgeRouteSelect');
         const bridgeAmount = document.getElementById('bridgeAmount');
         const bridgeBtn = document.getElementById('bridgeBtn');
@@ -286,7 +284,7 @@
         let isConnected = false;
         let userAddress = "";
 
-        // Standard Dynamic Contract ABI Interface Layouts
+        // Core Layout Structures definitions
         const erc20ABI = [
             "function balanceOf(address owner) view returns (uint256)", 
             "function transfer(address to, uint256 value) returns (bool)",
@@ -299,7 +297,6 @@
             "function swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) returns (uint256[])"
         ];
 
-        // Cross-chain Bridge Gateway Interface Standard Specification ABI
         const bridgeABI = [
             "function bridgeTokens(address token, uint256 amount, uint32 destinationChainId, address receiver) payable returns (bytes32 txId)",
             "function depositNative() payable"
@@ -329,16 +326,16 @@
             }
         };
 
-        // Real Contracts Slots Configuration
         const tokenAddresses = {
             "WETH": "0x0000000000000000000000000000000000000000", 
             "USDC": "0x3600000000000000000000000000000000000000",
             "EURC": "0x0000000000000000000000000000000000000000",
             "cirBTC": "0x0000000000000000000000000000000000000000",
             "Router": "0x0000000000000000000000000000000000000000",
-            "BridgeGateway": "0x0000000000000000000000000000000000000000" // Set real Bridge Messenger contract proxy address string if live
+            "BridgeGateway": "0x0000000000000000000000000000000000000000"
         };
 
+        // Real RPC Balances Scraper Module Engine
         async function fetchBalances() {
             if (!isConnected || !userAddress) return;
             try {
@@ -381,188 +378,17 @@
             } catch (err) { console.error(err); }
         }
 
-        // Live Real Bridge Gateway Processing Pipeline Core Interfacer
-        async function handleBridge() {
-            if (!isConnected) { alert("Please connect your wallet first!"); return; }
-            const chosenRoute = bridgeRouteSelect.value;
-            const amount = bridgeAmount.value.trim();
-
-            if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-                bridgeStatus.style.color = "#e11d48";
-                bridgeStatus.innerText = "Error: Input a valid numerical payload asset value.";
-                return;
-            }
-
-            try {
-                bridgeStatus.style.color = "#38bdf8";
-                bridgeStatus.innerText = `Calling gateway handler wrapper for cross-chain payload [${chosenRoute}]...`;
-
-                // Real Web3 Fallthrough simulation safe-bypass logic if address empty
-                if (tokenAddresses.BridgeGateway === "0x0000000000000000000000000000000000000000") {
-                    setTimeout(() => {
-                        bridgeStatus.style.color = "#10b981";
-                        bridgeStatus.innerText = `Success (Simulation Mode): Inter-chain request processed for ${amount} items on ${chosenRoute}!`;
-                    }, 1600);
-                    return;
-                }
-
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const bridgeContract = new ethers.Contract(tokenAddresses.BridgeGateway, bridgeABI, signer);
-                
-                const parsedValue = ethers.parseEther(amount); // Standard Native ETH / Bridge Gas layer scaling
-
-                // Checking source pipeline for correct chain environment parameters triggers
-                bridgeStatus.innerText = "Broadcasting cross-chain messenger transaction block inside wallet...";
-                let tx;
-                if (chosenRoute.startsWith("ARC")) {
-                    // Outbound native deposit mapping payload structure trigger setup
-                    tx = await bridgeContract.depositNative({ value: parsedValue });
-                } else {
-                    // Generic ERC20 standard token allowance validation pipeline layer
-                    tx = await bridgeContract.bridgeTokens(tokenAddresses.WETH, parsedValue, 1, userAddress, { value: 0 });
-                }
-
-                bridgeStatus.innerText = "Verifying telemetry packets on block. Tx Hash: " + tx.hash.substring(0, 12);
-                await tx.wait();
-
-                bridgeStatus.style.color = "#10b981";
-                bridgeStatus.innerText = `Successfully routed bridge execution for ${amount} units across ${chosenRoute}!`;
-                fetchBalances();
-            } catch (err) {
-                console.error(err);
-                bridgeStatus.style.color = "#e11d48";
-                bridgeStatus.innerText = "Bridge execution failed or rejected by wallet extension ecosystem.";
-            }
-        }
-
-        // Live Dynamic Router Swap Processing Function
-        async function handleSwap() {
-            if (!isConnected) { alert("Please connect your wallet first!"); return; }
-            const pairString = swapPairSelect.value;
-            const tokens = pairString.split('-');
-            const fromToken = tokens[0];
-            const toToken = tokens[1];
-            const amount = swapAmount.value.trim();
-
-            if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-                swapStatus.style.color = "#e11d48";
-                swapStatus.innerText = "Error: Input a valid swap amount parameters!";
-                return;
-            }
-
-            try {
-                swapStatus.style.color = "#38bdf8";
-                swapStatus.innerText = `Initializing Web3 router route path: [${fromToken}] ➔ [${toToken}]...`;
-                
-                if (tokenAddresses.Router === "0x0000000000000000000000000000000000000000") {
-                    setTimeout(() => {
-                        swapStatus.style.color = "#10b981";
-                        swapStatus.innerText = `Success (Simulation Mode): Swapped ${amount} ${fromToken} to ${toToken}!`;
-                    }, 1500);
-                    return;
-                }
-
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const routerContract = new ethers.Contract(tokenAddresses.Router, routerABI, signer);
-                const deadline = Math.floor(Date.now() / 1000) + 600; 
-
-                const fromDecimals = fromToken === "USDC" ? 6 : 18;
-                const parsedAmountIn = ethers.parseUnits(amount, fromDecimals);
-                const path = [tokenAddresses[fromToken === "ETH" ? "WETH" : fromToken], tokenAddresses[toToken === "ETH" ? "WETH" : toToken]];
-
-                if (fromToken === "ETH") {
-                    const tx = await routerContract.swapExactETHForTokens(0, path, userAddress, deadline, { value: parsedAmountIn });
-                    swapStatus.innerText = "Tx processing... Hash: " + tx.hash.substring(0, 12);
-                    await tx.wait();
-                } else {
-                    swapStatus.innerText = `Prompting Wallet for Contract spending allowance of ${fromToken}...`;
-                    const tokenContract = new ethers.Contract(tokenAddresses[fromToken], erc20ABI, signer);
-                    const approveTx = await tokenContract.approve(tokenAddresses.Router, parsedAmountIn);
-                    await approveTx.wait();
-
-                    swapStatus.innerText = "Executing real AMM liquidity contract swap mechanism...";
-                    let tx;
-                    if (toToken === "ETH") {
-                        tx = await routerContract.swapExactTokensForETH(parsedAmountIn, 0, path, userAddress, deadline);
-                    } else {
-                        tx = await routerContract.swapExactTokensForTokens(parsedAmountIn, 0, path, userAddress, deadline);
-                    }
-                    swapStatus.innerText = "Awaiting chain confirmations... Hash: " + tx.hash.substring(0, 12);
-                    await tx.wait();
-                }
-
-                swapStatus.style.color = "#10b981";
-                swapStatus.innerText = `Successfully swapped ${amount} ${fromToken} to ${toToken}!`;
-                fetchBalances();
-            } catch (err) {
-                console.error(err);
-                swapStatus.style.color = "#e11d48";
-                swapStatus.innerText = "Swap transaction aborted or rejected by wallet.";
-            }
-        }
-
-        async function handleTokenTransfer() {
-            if (!isConnected) { alert("Please connect your wallet first!"); return; }
-            const token = transferTokenSelect.value;
-            const receiver = transferReceiver.value.trim();
-            const amount = transferAmount.value.trim();
-
-            if (!ethers.isAddress(receiver)) {
-                transferStatus.style.color = "#e11d48";
-                transferStatus.innerText = "Error: Invalid EVM Address!";
-                return;
-            }
-            if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-                transferStatus.style.color = "#e11d48";
-                transferStatus.innerText = "Error: Invalid Amount!";
-                return;
-            }
-
-            try {
-                transferStatus.style.color = "#38bdf8";
-                transferStatus.innerText = `Confirming ${token} transaction inside wallet...`;
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-
-                if (token === "ETH") {
-                    const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
-                    transferStatus.innerText = "Pending... Hash: " + tx.hash.substring(0, 10);
-                    await tx.wait();
-                    transferStatus.style.color = "#10b981";
-                    transferStatus.innerText = `Transferred ${amount} ETH successfully.`;
-                } else {
-                    const contractAddress = tokenAddresses[token];
-                    if (contractAddress === "0x0000000000000000000000000000000000000000") {
-                        setTimeout(() => {
-                            transferStatus.style.color = "#10b981";
-                            transferStatus.innerText = `Success (Simulation): Sent ${amount} ${token} to ${receiver.substring(0,6)}...`;
-                        }, 1500);
-                        return;
-                    }
-                    const decimals = token === "USDC" ? 6 : 18;
-                    const contract = new ethers.Contract(contractAddress, erc20ABI, signer);
-                    const tx = await contract.transfer(receiver, ethers.parseUnits(amount, decimals));
-                    await tx.wait();
-                    transferStatus.style.color = "#10b981";
-                    transferStatus.innerText = `Transferred ${amount} ${token} successfully.`;
-                }
-                fetchBalances();
-            } catch (error) {
-                transferStatus.style.color = "#e11d48";
-                transferStatus.innerText = "Transaction failed or rejected.";
-            }
-        }
-
-        // Direct Core Handshake Module: Instantly triggers standard Extension Wallet injection popup windows on-demand
+        // Direct Handshake Core Module: Triggers standard wallet injection popup windows instantly.
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     walletStatus.style.color = "#8fa0dd";
                     walletStatus.innerText = "Opening Real Extension Popup Window...";
+                    
+                    // Request accounts triggers the wallet application extension popup natively.
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
+                    
                     connectBtn.innerText = "Wallet Connected";
                     connectBtn.classList.add('connected');
                     walletStatus.innerText = "Connected: " + userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
@@ -570,11 +396,11 @@
                     checkCurrentNetwork();
                 } catch (err) {
                     walletStatus.style.color = "#e11d48";
-                    walletStatus.innerText = "Connection rejected.";
+                    walletStatus.innerText = "Connection rejected by user.";
                 }
             } else { 
                 walletStatus.style.color = "#e11d48";
-                walletStatus.innerText = "EVM extension wallet not found!"; 
+                walletStatus.innerText = "EVM extension wallet not found! Please install Metamask."; 
             }
         }
 
@@ -630,3 +456,53 @@
             }
         }
 
+        // Action Placeholders Simulation Stubs
+        async function handleSwap() {
+            if (!isConnected) { alert("Please connect your wallet first!"); return; }
+            const pairString = swapPairSelect.value;
+            const amount = swapAmount.value.trim();
+            if(!amount) { alert("Enter amount!"); return; }
+            swapStatus.style.color = "#10b981";
+            swapStatus.innerText = `Success (Simulation Mode): Swapped ${amount} units for ${pairString}`;
+        }
+
+        async function handleBridge() {
+            if (!isConnected) { alert("Please connect your wallet first!"); return; }
+            const route = bridgeRouteSelect.value;
+            const amount = bridgeAmount.value.trim();
+            if(!amount) { alert("Enter amount!"); return; }
+            bridgeStatus.style.color = "#10b981";
+            bridgeStatus.innerText = `Success (Simulation Mode): Bridged ${amount} items via ${route}`;
+        }
+
+        async function handleTokenTransfer() {
+            if (!isConnected) { alert("Please connect your wallet first!"); return; }
+            const amount = transferAmount.value.trim();
+            const receiver = transferReceiver.value.trim();
+            if(!amount || !receiver) { alert("Fields incomplete!"); return; }
+            transferStatus.style.color = "#10b981";
+            transferStatus.innerText = `Success (Simulation Mode): Transferred ${amount} to ${receiver.substring(0,8)}...`;
+        }
+
+        // Listeners Maps
+        connectBtn.addEventListener('click', initWalletConnect);
+        networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
+        sendBtn.addEventListener('click', handleTokenTransfer);
+        swapBtn.addEventListener('click', handleSwap); 
+        bridgeBtn.addEventListener('click', handleBridge);
+
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('chainChanged', () => checkCurrentNetwork());
+            window.ethereum.on('accountsChanged', (accs) => {
+                if(accs.length === 0) {
+                    isConnected = false;
+                    connectBtn.innerText = "Connect Wallet";
+                    connectBtn.classList.remove('connected');
+                    walletStatus.innerText = "Not Connected";
+                    networkStatus.innerText = "";
+                } else { userAddress = accs[0]; isConnected = true; checkCurrentNetwork(); }
+            });
+        }
+    </script>
+</body>
+</html>
