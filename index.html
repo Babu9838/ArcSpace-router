@@ -239,13 +239,11 @@
         const networkSelect = document.getElementById('networkSelect');
         const networkStatus = document.getElementById('networkStatus');
 
-        // Balance Elements
         const ethBalanceEl = document.getElementById('ethBalance');
         const usdcBalanceEl = document.getElementById('usdcBalance');
         const eurcBalanceEl = document.getElementById('eurcBalance');
         const cirBtcBalanceEl = document.getElementById('cirBtcBalance');
 
-        // Transfer Form Elements
         const transferTokenSelect = document.getElementById('transferTokenSelect');
         const transferReceiver = document.getElementById('transferReceiver');
         const transferAmount = document.getElementById('transferAmount');
@@ -255,26 +253,22 @@
         let isConnected = false;
         let userAddress = "";
 
-        // Standard Transfer ABIs (ERC-20 standard)
-        const erc20ABI = [
-            "function balanceOf(address owner) view returns (uint256)",
-            "function transfer(address to, uint256 value) returns (bool)"
-        ];
+        const erc20ABI = ["function balanceOf(address owner) view returns (uint256)", "function transfer(address to, uint256 value) returns (bool)"];
 
+        // Dynamic params network data array containing multiple naming patterns
         const networkParams = {
             "0x1f4": { chainId: "0x1f4", chainName: "Arc Testnet" },
+            "0x01f4": { chainId: "0x1f4", chainName: "Arc Testnet" }, // Handles zero padding mismatch
             "0xaa36a7": { chainId: "0xaa36a7", chainName: "Sepolia Testnet" },
             "0x66eee": { chainId: "0x66eee", chainName: "Arbitrum Sepolia" }
         };
 
-        // Real RPC Token Smart Contract Address (আপনার অরিজিনাল কন্ট্রাক্ট বসাবেন)
         const tokenAddresses = {
-            "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", // Demo Sepolia Address
+            "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
             "EURC": "0x0000000000000000000000000000000000000000",
             "cirBTC": "0x0000000000000000000000000000000000000000"
         };
 
-        // Live Balance Fetching Logic
         async function fetchBalances() {
             if (!isConnected || !userAddress) return;
             try {
@@ -282,7 +276,6 @@
                 const rawEthBalance = await provider.getBalance(userAddress);
                 let currentEth = parseFloat(ethers.formatEther(rawEthBalance));
                 
-                // Simulation fallbacks if balance is purely zero
                 if(currentEth === 0) {
                     ethBalanceEl.innerText = "1.4520";
                     usdcBalanceEl.innerText = "250.00";
@@ -290,10 +283,9 @@
                     cirBtcBalanceEl.innerText = "0.0240";
                     return;
                 }
-
                 ethBalanceEl.innerText = currentEth.toFixed(4);
 
-                // Fetch USDC
+                // USDC
                 if (tokenAddresses.USDC !== "0x0000000000000000000000000000000000000000") {
                     try {
                         const contract = new ethers.Contract(tokenAddresses.USDC, erc20ABI, provider);
@@ -302,7 +294,7 @@
                     } catch(e) { usdcBalanceEl.innerText = "120.00"; }
                 } else { usdcBalanceEl.innerText = "120.00"; }
 
-                // Fetch EURC
+                // EURC
                 if (tokenAddresses.EURC !== "0x0000000000000000000000000000000000000000") {
                     try {
                         const contract = new ethers.Contract(tokenAddresses.EURC, erc20ABI, provider);
@@ -311,7 +303,7 @@
                     } catch(e) { eurcBalanceEl.innerText = "85.00"; }
                 } else { eurcBalanceEl.innerText = "85.00"; }
 
-                // Fetch cirBTC
+                // cirBTC
                 if (tokenAddresses.cirBTC !== "0x0000000000000000000000000000000000000000") {
                     try {
                         const contract = new ethers.Contract(tokenAddresses.cirBTC, erc20ABI, provider);
@@ -319,132 +311,99 @@
                         cirBtcBalanceEl.innerText = parseFloat(ethers.formatUnits(bal, 18)).toFixed(4);
                     } catch(e) { cirBtcBalanceEl.innerText = "0.0055"; }
                 } else { cirBtcBalanceEl.innerText = "0.0055"; }
-
-            } catch (err) {
-                console.error("Balance fetch error:", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // --- REAL LIVE TOKEN TRANSFER FUNCTION ---
         async function handleTokenTransfer() {
-            if (!isConnected) {
-                alert("Please connect your wallet first!");
-                return;
-            }
-
+            if (!isConnected) { alert("Please connect your wallet first!"); return; }
             const token = transferTokenSelect.value;
             const receiver = transferReceiver.value.trim();
             const amount = transferAmount.value.trim();
 
-            // Inputs Validation
             if (!ethers.isAddress(receiver)) {
                 transferStatus.style.color = "#e11d48";
-                transferStatus.innerText = "Error: Invalid Receiver EVM Address!";
+                transferStatus.innerText = "Error: Invalid EVM Address!";
                 return;
             }
             if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
                 transferStatus.style.color = "#e11d48";
-                transferStatus.innerText = "Error: Please enter a valid positive amount!";
+                transferStatus.innerText = "Error: Invalid Amount!";
                 return;
             }
 
             try {
                 transferStatus.style.color = "#38bdf8";
-                transferStatus.innerText = `Initiating ${token} transfer... Please confirm in MetaMask.`;
+                transferStatus.innerText = `Confirming ${token} transaction inside Wallet...`;
 
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
 
                 if (token === "ETH") {
-                    // Native Token/ETH Transfer
-                    const tx = await signer.sendTransaction({
-                        to: receiver,
-                        value: ethers.parseEther(amount)
-                    });
-                    transferStatus.innerText = "Transaction pending... Hash: " + tx.hash.substring(0, 15) + "...";
-                    await tx.wait(); // Wait for confirmation on-chain
+                    const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
+                    transferStatus.innerText = "Pending confirmations... Hash: " + tx.hash.substring(0, 10);
+                    await tx.wait();
                     transferStatus.style.color = "#10b981";
-                    transferStatus.innerText = `Success! ${amount} ETH transferred.`;
-
+                    transferStatus.innerText = `Successfully transferred ${amount} ETH.`;
                 } else {
-                    // ERC-20 Tokens Transfer (USDC, EURC, cirBTC)
                     const contractAddress = tokenAddresses[token];
                     if (contractAddress === "0x0000000000000000000000000000000000000000") {
-                        // Fallback Simulation for frontend demo if token contract isn't updated yet
-                        transferStatus.innerText = "Processing sandbox simulation transaction...";
                         setTimeout(() => {
                             transferStatus.style.color = "#10b981";
                             transferStatus.innerText = `Success (Simulation): Sent ${amount} ${token} to ${receiver.substring(0,6)}...`;
-                        }, 2000);
+                        }, 1500);
                         return;
                     }
-
-                    // Real Smart Contract Transaction Execution
-                    const decimals = token === "USDC" ? 6 : 18; // USDC supports 6 decimals usually
+                    const decimals = token === "USDC" ? 6 : 18;
                     const contract = new ethers.Contract(contractAddress, erc20ABI, signer);
-                    const parsedAmount = ethers.parseUnits(amount, decimals);
-
-                    const tx = await contract.transfer(receiver, parsedAmount);
-                    transferStatus.innerText = "Contract execution pending... Hash: " + tx.hash.substring(0, 15) + "...";
+                    const tx = await contract.transfer(receiver, ethers.parseUnits(amount, decimals));
                     await tx.wait();
                     transferStatus.style.color = "#10b981";
-                    transferStatus.innerText = `Success! ${amount} ${token} sent.`;
+                    transferStatus.innerText = `Successfully transferred ${amount} ${token}.`;
                 }
-
-                // Refresh balances after successful transaction
                 fetchBalances();
-
             } catch (error) {
-                console.error("Transfer error details:", error);
                 transferStatus.style.color = "#e11d48";
-                if (error.code === "ACTION_REJECTED") {
-                    transferStatus.innerText = "Transaction rejected by user inside MetaMask.";
-                } else {
-                    transferStatus.innerText = "Transaction failed! Check balance or contract settings.";
-                }
+                transferStatus.innerText = "Transaction failed or rejected.";
             }
         }
 
-        // Wallet State management
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     walletStatus.innerText = "Connecting...";
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
-                    const dottedAddress = userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
-                    
                     connectBtn.innerText = "Wallet Connected";
                     connectBtn.classList.add('connected');
-                    walletStatus.innerText = "Connected: " + dottedAddress;
+                    walletStatus.innerText = "Connected: " + userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
                     isConnected = true;
-
                     checkCurrentNetwork();
                 } catch (err) {
-                    console.error(err);
-                    walletStatus.innerText = "Connection rejected.";
-                    connectBtn.innerText = "Connect Wallet";
+                    walletStatus.innerText = "Rejected.";
                 }
-            } else {
-                walletStatus.innerText = "MetaMask not found!";
-            }
+            } else { walletStatus.innerText = "MetaMask not found!"; }
         }
 
+        // Optimized verification module mapping
         async function checkCurrentNetwork() {
             if (typeof window.ethereum !== 'undefined' && isConnected) {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                 let cleanChainId = currentChainId.toLowerCase();
-                if (cleanChainId === "0x01f4" || cleanChainId === "0x1f4") {
-                    cleanChainId = "0x1f4"; 
+
+                // If MetaMask parses 500 as 0x01f4 instead of 0x1f4, redirect standard string reference
+                if (cleanChainId === "0x01f4") {
+                    cleanChainId = "0x1f4";
                 }
 
                 if (networkParams[cleanChainId]) {
-                    networkSelect.value = cleanChainId;
-                    networkStatus.style.color = "#10b981";
+                    // Update dropdown to sync UI selection state
+                    networkSelect.value = "0x1f4" && cleanChainId === "0x1f4" ? "0x1f4" : cleanChainId;
+                    
+                    networkStatus.style.color = "#10b981"; // Succesful verification text color (Green)
                     networkStatus.innerText = "Network verified: " + networkParams[cleanChainId].chainName;
                 } else {
                     networkStatus.style.color = "#e11d48";
-                    networkStatus.innerText = "Custom Chain Connected.";
+                    networkStatus.innerText = "Unsupported Chain Connected.";
                 }
                 fetchBalances();
             }
@@ -458,8 +417,8 @@
                         params: [{ chainId: chainId }],
                     });
                     networkStatus.innerText = "";
-                } catch (switchError) {
-                    console.error(switchError);
+                } catch (err) {
+                    console.error(err);
                     checkCurrentNetwork();
                 }
             } else if (!isConnected) {
@@ -468,34 +427,27 @@
             }
         }
 
-        // Core Listeners
         connectBtn.addEventListener('click', initWalletConnect);
         networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
         sendBtn.addEventListener('click', handleTokenTransfer);
 
         if (typeof window.ethereum !== 'undefined') {
             window.ethereum.on('chainChanged', () => checkCurrentNetwork());
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if(accounts.length === 0) {
+            window.ethereum.on('accountsChanged', (accs) => {
+                if(accs.length === 0) {
                     isConnected = false;
-                    userAddress = "";
                     connectBtn.innerText = "Connect Wallet";
                     connectBtn.classList.remove('connected');
                     walletStatus.innerText = "Not Connected";
                     networkStatus.innerText = "";
-                } else {
-                    userAddress = accounts[0];
-                    initWalletConnect();
-                }
+                } else { userAddress = accs[0]; initWalletConnect(); }
             });
         }
 
         window.addEventListener('load', async () => {
             if (typeof window.ethereum !== 'undefined') {
                 const activeAccounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (activeAccounts.length > 0) {
-                    initWalletConnect();
-                }
+                if (activeAccounts.length > 0) { initWalletConnect(); }
             }
         });
     </script>
