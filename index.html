@@ -92,9 +92,14 @@
             border-radius: 4px;
             box-sizing: border-box;
             margin-bottom: 10px;
+            font-family: inherit;
         }
 
-        /* Action buttons (Send, Swap, Bridge, Liquidity, Stake) */
+        select {
+            cursor: pointer;
+        }
+
+        /* Action buttons */
         .btn-action {
             background-color: #4338ca;
             color: white;
@@ -144,10 +149,10 @@
     </div>
 
     <div class="card">
-        <label>Network Switch</label>
-        <select>
-            <option>Arc Testnet</option>
-        </select>
+        <label for="networkSelect">Network Switch</label>
+        <select id="networkSelect">
+            <option value="0x1f4" selected>Arc Testnet</option> <option value="0xaa36a7">Sepolia Testnet</option> <option value="0x66eee">Arbitrum Sepolia</option> </select>
+        <div id="networkStatus" class="status-text" style="color: #e11d48;"></div>
     </div>
 
     <div class="card">
@@ -218,51 +223,144 @@
     <script>
         const connectBtn = document.getElementById('connectBtn');
         const walletStatus = document.getElementById('walletStatus');
+        const networkSelect = document.getElementById('networkSelect');
+        const networkStatus = document.getElementById('networkStatus');
 
-        // Connection function
+        let isConnected = false;
+
+        // Custom Network Configuration (Arc Testnet jodi MetaMask e add na thake tar data)
+        const networkParams = {
+            "0x1f4": {
+                chainId: "0x1f4",
+                chainName: "Arc Testnet",
+                rpcUrls: ["https://rpc.arc-testnet.io"], // Ekhane apnar actual RPC url hobe
+                nativeCurrency: { name: "ARC", symbol: "ARC", decimals: 18 },
+                blockExplorerUrls: ["https://explorer.arc-testnet.io"]
+            },
+            "0xaa36a7": {
+                chainId: "0xaa36a7",
+                chainName: "Sepolia Testnet",
+                rpcUrls: ["https://rpc.sepolia.org"],
+                nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: ["https://sepolia.etherscan.io"]
+            },
+            "0x66eee": {
+                chainId: "0x66eee",
+                chainName: "Arbitrum Sepolia",
+                rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
+                nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: ["https://sepolia.arbiscan.io"]
+            }
+        };
+
+        // Wallet Connection Function
         async function initWalletConnect() {
-            // Browser-e MetaMask ba kono extension ache kina check korbe
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     walletStatus.innerText = "Connecting...";
-                    
-                    // Request wallet account access
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     const userAddress = accounts[0];
-                    
-                    // Address tike choto kore dekhano (Ex: 0x1234...abcd)
                     const dottedAddress = userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
                     
-                    // UI dynamic changes
                     connectBtn.innerText = "Wallet Connected";
                     connectBtn.classList.add('connected');
-                    walletStatus.innerText = "Connected Account: " + dottedAddress;
-                    
-                    console.log("Connected successfully to address:", userAddress);
+                    walletStatus.innerText = "Connected: " + dottedAddress;
+                    isConnected = true;
+
+                    // Connection er por active network check kora
+                    checkCurrentNetwork();
                 } catch (err) {
-                    console.error("User denied account access or error occurred:", err);
+                    console.error(err);
                     walletStatus.innerText = "Connection rejected.";
                     connectBtn.innerText = "Connect Wallet";
                 }
             } else {
-                // Extension na thakle warning dekhabe
-                walletStatus.innerText = "Wallet extension not found! Please install MetaMask.";
-                alert("Please install MetaMask extension to connect your wallet.");
+                walletStatus.innerText = "MetaMask not found!";
+                alert("Please install MetaMask extension.");
             }
         }
 
-        // Button click event listener
-        connectBtn.addEventListener('click', initWalletConnect);
+        // Current Network Check Function
+        async function checkCurrentNetwork() {
+            if (typeof window.ethereum !== 'undefined' && isConnected) {
+                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                
+                // Select element-ke wallet er actual chain standard e sync kora
+                if (document.querySelector(`#networkSelect option[value="${currentChainId}"]`)) {
+                    networkSelect.value = currentChainId;
+                    networkStatus.innerText = ""; // Clear errors
+                } else {
+                    networkStatus.innerText = "Unsupported Network! Please switch from dropdown.";
+                }
+            }
+        }
 
-        // Auto check if already connected on page refresh
+        // Network Switch Function
+        async function switchNetwork(chainId) {
+            if (typeof window.ethereum !== 'undefined' && isConnected) {
+                try {
+                    // Prothome check korbe common network kina (Hex parameter diye switch request)
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: chainId }],
+                    });
+                    networkStatus.innerText = "";
+                } catch (switchError) {
+                    // Jodi network MetaMask e add na thake (Error code: 4902)
+                    if (switchError.code === 4902) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [networkParams[chainId]],
+                            });
+                            networkStatus.innerText = "";
+                        } catch (addError) {
+                            console.error("Could not add network:", addError);
+                        }
+                    } else {
+                        console.error("Could not switch network:", switchError);
+                        // Switch fail hole wallet er real network e dropdown back korbe
+                        checkCurrentNetwork();
+                    }
+                }
+            } else if (!isConnected) {
+                alert("Please connect your wallet first!");
+                networkSelect.value = "0x1f4"; // Default back to Arc
+            }
+        }
+
+        // Event Listeners
+        connectBtn.addEventListener('click', initWalletConnect);
+        
+        networkSelect.addEventListener('change', (e) => {
+            switchNetwork(e.target.value);
+        });
+
+        // Wallet active chain change hole autodetect hobe
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('chainChanged', (chainId) => {
+                networkSelect.value = chainId;
+                checkCurrentNetwork();
+            });
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if(accounts.length === 0) {
+                    isConnected = false;
+                    connectBtn.innerText = "Connect Wallet";
+                    connectBtn.classList.remove('connected');
+                    walletStatus.innerText = "Not Connected";
+                    networkStatus.innerText = "";
+                } else {
+                    initWalletConnect();
+                }
+            });
+        }
+
+        // Auto check on page reload
         window.addEventListener('load', async () => {
             if (typeof window.ethereum !== 'undefined') {
                 const activeAccounts = await window.ethereum.request({ method: 'eth_accounts' });
                 if (activeAccounts.length > 0) {
-                    const dottedAddress = activeAccounts[0].substring(0, 6) + "..." + activeAccounts[0].substring(activeAccounts[0].length - 4);
-                    connectBtn.innerText = "Wallet Connected";
-                    connectBtn.classList.add('connected');
-                    walletStatus.innerText = "Connected Account: " + dottedAddress;
+                    initWalletConnect();
                 }
             }
         });
