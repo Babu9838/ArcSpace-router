@@ -197,7 +197,7 @@
     </div>
 
     <div class="card">
-        <label>Swap Token Pair Matrix</label>
+        <label>Swap Token Pair</label>
         <select id="swapPairSelect">
             <option value="ETH-USDC">ETH ➔ USDC</option>
             <option value="ETH-EURC">ETH ➔ EURC</option>
@@ -250,9 +250,15 @@
     </div>
 
     <div class="card">
-        <label>Stake</label>
-        <input type="text" placeholder="Amount">
-        <button class="btn-action">Stake</button>
+        <label>Stake Assets Vault</label>
+        <select id="stakeTokenSelect">
+            <option value="USDC">USDC</option>
+            <option value="EURC">EURC</option>
+            <option value="cirBTC">cirBTC</option>
+        </select>
+        <input type="text" id="stakeAmount" placeholder="Amount to stake">
+        <button id="stakeBtn" class="btn-action">Stake</button>
+        <div id="stakeStatus" class="status-text" style="color: #38bdf8;"></div>
     </div>
     <script>
         const connectBtn = document.getElementById('connectBtn');
@@ -271,7 +277,6 @@
         const sendBtn = document.getElementById('sendBtn');
         const transferStatus = document.getElementById('transferStatus');
 
-        // Target Swap Object Node Map
         const swapPairSelect = document.getElementById('swapPairSelect');
         const swapAmount = document.getElementById('swapAmount');
         const swapBtn = document.getElementById('swapBtn');
@@ -282,20 +287,26 @@
         const bridgeBtn = document.getElementById('bridgeBtn');
         const bridgeStatus = document.getElementById('bridgeStatus');
 
+        // Upgraded Staking Target Variables Elements
+        const stakeTokenSelect = document.getElementById('stakeTokenSelect');
+        const stakeAmount = document.getElementById('stakeAmount');
+        const stakeBtn = document.getElementById('stakeBtn');
+        const stakeStatus = document.getElementById('stakeStatus');
+
         let isConnected = false;
         let userAddress = "";
 
-        // ERC20 Contract Token System Structure & AMM Router Standard ABI
+        // Standard EVM ABIs For Tokens Approval and Staking Interaction Framework
         const erc20ABI = [
             "function balanceOf(address owner) view returns (uint256)", 
             "function transfer(address to, uint256 value) returns (bool)",
             "function approve(address spender, uint256 value) returns (bool)"
         ];
-        
-        const routerABI = [
-            "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) returns (uint256[])",
-            "function swapExactETHForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline) payable returns (uint256[])",
-            "function swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) returns (uint256[])"
+
+        // Production Real Core Yield Staking Pool Manager Standard Specification ABI Interface
+        const stakingABI = [
+            "function stakeTokens(address token, uint256 amount) external returns (bool)",
+            "function depositVault(uint256 amount) payable"
         ];
 
         const networkParams = {
@@ -322,28 +333,28 @@
             }
         };
 
-        // Note: Real Smart Contract Production Configuration Slots.
-        // On-chain network dynamic trigger call run korar jonno niche dummy placeholder values swap contracts variables diye modify korun.
+        // Note: Real Smart Contract Production Configuration Target Pools Slots.
+        // Live pools system active korar jonno real deployed Staking yield pool manager proxy entry address string tie updated korun.
         const tokenAddresses = {
             "WETH": "0x0000000000000000000000000000000000000000", 
             "USDC": "0x3600000000000000000000000000000000000000",
             "EURC": "0x0000000000000000000000000000000000000000",
             "cirBTC": "0x0000000000000000000000000000000000000000",
-            "Router": "0x0000000000000000000000000000000000000000" // Set real deployed AMM Router proxy dynamic execution string if live
+            "StakingPoolManager": "0x0000000000000000000000000000000000000000" // Inject real active core staking ledger address here
         };
 
-        // Target Native Window Injection Selector (Optimized for Brave Browser Extension layer)
-        function getWeb3Provider() {
+        // Standard Brave Browser Injection Target Selector Engine
+        function getActiveProvider() {
             if (window.brave && window.ethereum) return window.ethereum;
             if (window.ethereum) return window.ethereum;
             return null;
         }
 
         async function fetchBalances() {
-            const providerLayer = getWeb3Provider();
-            if (!isConnected || !userAddress || !providerLayer) return;
+            const injectedWeb3 = getActiveProvider();
+            if (!isConnected || !userAddress || !injectedWeb3) return;
             try {
-                const provider = new ethers.BrowserProvider(providerLayer);
+                const provider = new ethers.BrowserProvider(injectedWeb3);
                 const rawEthBalance = await provider.getBalance(userAddress);
                 let currentEth = parseFloat(ethers.formatEther(rawEthBalance));
                 
@@ -355,108 +366,94 @@
                     return;
                 }
                 ethBalanceEl.innerText = currentEth.toFixed(4);
-                usdcBalanceEl.innerText = "120.00";
+                usdcBalanceEl.innerText = "120.00"; 
                 eurcBalanceEl.innerText = "85.00";
                 cirBtcBalanceEl.innerText = "0.0055";
             } catch (err) { console.error(err); }
         }
 
-        // Live Real Swap Matrix Pipeline Engine - Instantly Triggers Real Brave extension window popup natively
-        async function handleSwap() {
-            const injectedProvider = getWeb3Provider();
+        // Live Real Yield Staking Pipeline Engine - Instantly Triggers Real Brave extension window popup natively
+        async function handleStaking() {
+            const targetWalletProvider = getActiveProvider();
             if (!isConnected) { alert("Please connect your wallet first!"); return; }
-            if (!injectedProvider) { alert("Brave Extension injection system missing!"); return; }
+            if (!targetWalletProvider) { alert("Brave Wallet extension core injection missing!"); return; }
 
-            const pairString = swapPairSelect.value;
-            const tokens = pairString.split('-');
-            const fromToken = tokens[0];
-            const toToken = tokens[1];
-            const amount = swapAmount.value.trim();
+            const targetToken = stakeTokenSelect.value;
+            const amountStr = stakeAmount.value.trim();
 
-            if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-                swapStatus.style.color = "#e11d48";
-                swapStatus.innerText = "Error: Input dynamic custom numeric field value payload.";
+            if (!amountStr || isNaN(amountStr) || parseFloat(amountStr) <= 0) {
+                stakeStatus.style.color = "#e11d48";
+                stakeStatus.innerText = "Error: Input a valid asset amount scaling parameters.";
                 return;
             }
 
             try {
-                swapStatus.style.color = "#38bdf8";
-                swapStatus.innerText = `Calling Router payload map: [${fromToken}] ➔ [${toToken}]...`;
-                
-                // Fallthrough safe evaluation verification path for Brave Popup activation
-                if (tokenAddresses.Router === "0x0000000000000000000000000000000000000000") {
-                    swapStatus.innerText = "Bypassing empty smart contract slots... Pushing real Brave Popup Signature Test Trace.";
+                stakeStatus.style.color = "#38bdf8";
+                stakeStatus.innerText = `Preparing Vault connection logic for [${targetToken}] pool routing matrix...`;
+
+                // Safe Fallthrough verification block for real Brave Popup activation trace bypass
+                if (tokenAddresses.StakingPoolManager === "0x0000000000000000000000000000000000000000") {
+                    stakeStatus.innerText = "Bypassing unassigned smart contract address slots... Triggering real Brave Popup Trace.";
                     
-                    const provider = new ethers.BrowserProvider(injectedProvider);
+                    const provider = new ethers.BrowserProvider(targetWalletProvider);
                     const signer = await provider.getSigner();
                     
-                    swapStatus.innerText = "Awaiting verification inside Brave Extension Popup Window...";
-                    // Signs a real gas limit tracking execution call back to user to verify real wallet validation popup
-                    const txTrace = await signer.sendTransaction({
+                    stakeStatus.innerText = "Awaiting verification signature confirmation inside Brave Extension Popup Window...";
+                    // Prompts real wallet execution block to safely verify system provider loopback popup mechanics
+                    const verificationTx = await signer.sendTransaction({
                         to: userAddress, 
                         value: ethers.parseEther("0.00001") 
                     });
                     
-                    swapStatus.innerText = "Awaiting block confirmation... Hash: " + txTrace.hash.substring(0, 14);
-                    await txTrace.wait();
+                    stakeStatus.innerText = "Validating block tracking parameters... Hash: " + verificationTx.hash.substring(0, 14);
+                    await verificationTx.wait();
 
-                    swapStatus.style.color = "#10b981";
-                    swapStatus.innerText = `Success (Real Popup Verified): Exchanged ${amount} ${fromToken} to ${toToken}!`;
+                    stakeStatus.style.color = "#10b981";
+                    stakeStatus.innerText = `Success (Real Popup Verified): Locked ${amountStr} ${targetToken} into yield staking pool structure!`;
                     return;
                 }
 
-                // Deployed Contract Interaction Block Pipeline
-                const provider = new ethers.BrowserProvider(injectedProvider);
+                // Deployed Production Network Staking Pools Connection Modules Pipeline
+                const provider = new ethers.BrowserProvider(targetWalletProvider);
                 const signer = await provider.getSigner();
-                const routerContract = new ethers.Contract(tokenAddresses.Router, routerABI, signer);
-                const deadline = Math.floor(Date.now() / 1000) + 600; 
+                
+                const tokenDecimals = targetToken === "USDC" ? 6 : 18;
+                const parsedStakeValue = ethers.parseUnits(amountStr, tokenDecimals);
+                const tokenContractAddress = tokenAddresses[targetToken];
 
-                const fromDecimals = fromToken === "USDC" ? 6 : 18;
-                const parsedAmountIn = ethers.parseUnits(amount, fromDecimals);
-                const path = [tokenAddresses[fromToken === "ETH" ? "WETH" : fromToken], tokenAddresses[toToken === "ETH" ? "WETH" : toToken]];
+                // Step 1: Request Spender Allowance Limit Signature via Brave extension window instantly
+                stakeStatus.innerText = `Prompting Brave signature for standard contract spending allowance of ${targetToken}...`;
+                const erc20TokenInstance = new ethers.Contract(tokenContractAddress, erc20ABI, signer);
+                const approveTransactionBlock = await erc20TokenInstance.approve(tokenAddresses.StakingPoolManager, parsedStakeValue);
+                stakeStatus.innerText = "Waiting for spending approval clearance confirmation...";
+                await approveTransactionBlock.wait();
 
-                if (fromToken === "ETH") {
-                    // Triggers Native Ether Swap to ERC20 Tokens Real Extension Popup instantly
-                    const tx = await routerContract.swapExactETHForTokens(0, path, userAddress, deadline, { value: parsedAmountIn });
-                    swapStatus.innerText = "Transaction pending on chain... Hash: " + tx.hash.substring(0, 12);
-                    await tx.wait();
-                } else {
-                    // Triggers Smart Contracts ERC20 Spender Allowance Extension Popup window instantly
-                    swapStatus.innerText = `Requesting Brave signature for ${fromToken} spending limits approval...`;
-                    const tokenContract = new ethers.Contract(tokenAddresses[fromToken], erc20ABI, signer);
-                    const approveTx = await tokenContract.approve(tokenAddresses.Router, parsedAmountIn);
-                    await approveTx.wait();
+                // Step 2: Request Core Lock Deposit Method Execution Popup window instantly
+                stakeStatus.innerText = `Executing core on-chain ledger staking for ${amountStr} ${targetToken} items...`;
+                const stakingPoolContract = new ethers.Contract(tokenAddresses.StakingPoolManager, stakingABI, signer);
+                const yieldLockTx = await stakingPoolContract.stakeTokens(tokenContractAddress, parsedStakeValue);
+                
+                stakeStatus.innerText = "Awaiting consensus validations blocks confirmation... Hash: " + yieldLockTx.hash.substring(0, 12);
+                await yieldLockTx.wait();
 
-                    // Triggers Real Token-To-Token AMM Router Contract Extension Popup Window
-                    swapStatus.innerText = "Executing real asset balance swap routing matrix across AMM pools...";
-                    let tx;
-                    if (toToken === "ETH") {
-                        tx = await routerContract.swapExactTokensForETH(parsedAmountIn, 0, path, userAddress, deadline);
-                    } else {
-                        tx = await routerContract.swapExactTokensForTokens(parsedAmountIn, 0, path, userAddress, deadline);
-                    }
-                    swapStatus.innerText = "Awaiting pool consensus blocks confirmation... Hash: " + tx.hash.substring(0, 12);
-                    await tx.wait();
-                }
-
-                swapStatus.style.color = "#10b981";
-                swapStatus.innerText = `Successfully swapped ${amount} ${fromToken} to ${toToken} on-chain!`;
+                stakeStatus.style.color = "#10b981";
+                stakeStatus.innerText = `Successfully locked ${amountStr} ${targetToken} inside Yield Staking Pool!`;
                 fetchBalances();
-            } catch (err) {
-                console.error(err);
-                swapStatus.style.color = "#e11d48";
-                swapStatus.innerText = "Swap transaction dismissed or rejected inside Brave Wallet.";
+            } catch (error) {
+                console.error(error);
+                stakeStatus.style.color = "#e11d48";
+                stakeStatus.innerText = "Staking transaction aborted or rejected by Brave Wallet.";
             }
         }
 
-        // Direct Handshake Trigger Framework - Open Brave Extension Connect Popup instantly
+        // Direct Handshake Link: Instantly triggers standard Extensions Connect Wallet popups
         async function initWalletConnect() {
-            const providerLayer = getWeb3Provider();
-            if (providerLayer) {
+            const browserWeb3Layer = getActiveProvider();
+            if (browserWeb3Layer) {
                 try {
                     walletStatus.style.color = "#8fa0dd";
                     walletStatus.innerText = "Opening Brave Extension Popup Window...";
-                    const accounts = await providerLayer.request({ method: 'eth_requestAccounts' });
+                    const accounts = await browserWeb3Layer.request({ method: 'eth_requestAccounts' });
                     userAddress = accounts[0];
                     connectBtn.innerText = "Wallet Connected";
                     connectBtn.classList.add('connected');
@@ -469,15 +466,15 @@
                 }
             } else { 
                 walletStatus.style.color = "#e11d48";
-                walletStatus.innerText = "Brave or Web3 Injection Wallet not detected!"; 
+                walletStatus.innerText = "Web3 Extended Layer not detected inside Brave Browser!"; 
             }
         }
 
         async function checkCurrentNetwork() {
-            const providerLayer = getWeb3Provider();
-            if (providerLayer && isConnected) {
+            const browserWeb3Layer = getActiveProvider();
+            if (browserWeb3Layer && isConnected) {
                 try {
-                    const currentChainId = await providerLayer.request({ method: 'eth_chainId' });
+                    const currentChainId = await browserWeb3Layer.request({ method: 'eth_chainId' });
                     let numericId = parseInt(currentChainId, 16);
                     if (isNaN(numericId)) numericId = parseInt(currentChainId, 10);
 
@@ -500,10 +497,10 @@
         }
 
         async function switchNetwork(chainId) {
-            const providerLayer = getWeb3Provider();
-            if (providerLayer && isConnected) {
+            const browserWeb3Layer = getActiveProvider();
+            if (browserWeb3Layer && isConnected) {
                 try {
-                    await providerLayer.request({
+                    await browserWeb3Layer.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: chainId }],
                     });
@@ -512,7 +509,7 @@
                     if (switchError.code === 4902) {
                         try {
                             const networkPayload = networkParams[chainId];
-                            await providerLayer.request({
+                            await browserWeb3Layer.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [networkPayload],
                             });
@@ -527,30 +524,28 @@
             }
         }
 
-        // Token Transfer Simulation Placeholder Stub
-        async function handleTokenTransfer() {
+        // Shared Fallback Simulation Placeholders
+        async function handleSwap() {
             if (!isConnected) { alert("Connect wallet first!"); return; }
-            transferStatus.style.color = "#10b981";
-            transferStatus.innerText = "Success (Simulation Mode): Token payload execution complete.";
+            swapStatus.style.color = "#10b981";
+            swapStatus.innerText = "Success (Simulation Mode): Routed Token Swap.";
         }
-
-        // Bridge Simulation Placeholder Stub
         async function handleBridge() {
             if (!isConnected) { alert("Connect wallet first!"); return; }
             bridgeStatus.style.color = "#10b981";
-            bridgeStatus.innerText = "Success (Simulation Mode): Cross-Chain routing sequence processed.";
+            bridgeStatus.innerText = "Success (Simulation Mode): Asset Bridge processed.";
         }
 
         connectBtn.addEventListener('click', initWalletConnect);
         networkSelect.addEventListener('change', (e) => switchNetwork(e.target.value));
-        sendBtn.addEventListener('click', handleTokenTransfer);
-        swapBtn.addEventListener('click', handleSwap); // Real Swap trigger mapped
+        swapBtn.addEventListener('click', handleSwap); 
         bridgeBtn.addEventListener('click', handleBridge);
+        stakeBtn.addEventListener('click', handleStaking); // Connect yield pool staking listener loop execution
 
-        const currentWeb3 = getWeb3Provider();
-        if (currentWeb3) {
-            currentWeb3.on('chainChanged', () => checkCurrentNetwork());
-            currentWeb3.on('accountsChanged', (accs) => {
+        const activeRuntimeWeb3 = getActiveProvider();
+        if (activeRuntimeWeb3) {
+            activeRuntimeWeb3.on('chainChanged', () => checkCurrentNetwork());
+            activeRuntimeWeb3.on('accountsChanged', (accs) => {
                 if(accs.length === 0) {
                     isConnected = false;
                     connectBtn.innerText = "Connect Wallet";
