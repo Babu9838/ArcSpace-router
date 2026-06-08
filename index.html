@@ -197,7 +197,7 @@
     </div>
 
     <div class="card">
-        <label>Swap Pair Selection</label>
+        <label>Swap Token Pair</label>
         <select id="swapPairSelect">
             <option value="ETH-USDC">ETH ➔ USDC</option>
             <option value="ETH-EURC">ETH ➔ EURC</option>
@@ -253,7 +253,7 @@
         const sendBtn = document.getElementById('sendBtn');
         const transferStatus = document.getElementById('transferStatus');
 
-        // Swap Matrix Variables
+        // Swap Variables
         const swapPairSelect = document.getElementById('swapPairSelect');
         const swapAmount = document.getElementById('swapAmount');
         const swapBtn = document.getElementById('swapBtn');
@@ -262,7 +262,7 @@
         let isConnected = false;
         let userAddress = "";
 
-        // Core Real Smart Contract ABI Formats
+        // Standard Real Dynamic Contract Smart Interfaces
         const erc20ABI = [
             "function balanceOf(address owner) view returns (uint256)", 
             "function transfer(address to, uint256 value) returns (bool)",
@@ -299,12 +299,13 @@
             }
         };
 
+        // Real Contract Address Smart Slots (Replace 0x0... values with live production address strings if deployed)
         const tokenAddresses = {
             "WETH": "0x0000000000000000000000000000000000000000", 
             "USDC": "0x3600000000000000000000000000000000000000",
             "EURC": "0x0000000000000000000000000000000000000000",
             "cirBTC": "0x0000000000000000000000000000000000000000",
-            "Router": "0x0000000000000000000000000000000000000000" // AMM Live Contract Router mapping space
+            "Router": "0x0000000000000000000000000000000000000000" 
         };
 
         async function fetchBalances() {
@@ -349,7 +350,7 @@
             } catch (err) { console.error(err); }
         }
 
-        // Real AMM Liquidity Dynamic Router Swap Core Interface Handler
+        // Live Dynamic Router Swap Processing Function
         async function handleSwap() {
             if (!isConnected) { alert("Please connect your wallet first!"); return; }
             const pairString = swapPairSelect.value;
@@ -360,19 +361,19 @@
 
             if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
                 swapStatus.style.color = "#e11d48";
-                swapStatus.innerText = "Error: Invalid numeric input parameters.";
+                swapStatus.innerText = "Error: Input a valid swap amount parameters!";
                 return;
             }
 
             try {
                 swapStatus.style.color = "#38bdf8";
-                swapStatus.innerText = `Routing path transaction framework for [${fromToken}] ➔ [${toToken}]...`;
+                swapStatus.innerText = `Initializing Web3 router route path: [${fromToken}] ➔ [${toToken}]...`;
                 
-                // Active fallthrough validation logic if router infrastructure field is placeholder
+                // Real AMM Simulation Safe Bypass logic block if slots empty
                 if (tokenAddresses.Router === "0x0000000000000000000000000000000000000000") {
                     setTimeout(() => {
                         swapStatus.style.color = "#10b981";
-                        swapStatus.innerText = `Success (Simulation Mode): Exchanged ${amount} ${fromToken} to ${toToken}!`;
+                        swapStatus.innerText = `Success (Simulation Mode): Swapped ${amount} ${fromToken} to ${toToken}!`;
                     }, 1500);
                     return;
                 }
@@ -388,22 +389,22 @@
 
                 if (fromToken === "ETH") {
                     const tx = await routerContract.swapExactETHForTokens(0, path, userAddress, deadline, { value: parsedAmountIn });
-                    swapStatus.innerText = "Tx submitted. Pending Hash: " + tx.hash.substring(0, 12);
+                    swapStatus.innerText = "Tx processing... Hash: " + tx.hash.substring(0, 12);
                     await tx.wait();
                 } else {
-                    swapStatus.innerText = `Requesting Router spend approval allowance for ${fromToken}...`;
+                    swapStatus.innerText = `Prompting Wallet for Contract spending allowance of ${fromToken}...`;
                     const tokenContract = new ethers.Contract(tokenAddresses[fromToken], erc20ABI, signer);
                     const approveTx = await tokenContract.approve(tokenAddresses.Router, parsedAmountIn);
                     await approveTx.wait();
 
-                    swapStatus.innerText = "Broadcasting payload validation to Liquidity Matrix...";
+                    swapStatus.innerText = "Executing real AMM liquidity contract swap mechanism...";
                     let tx;
                     if (toToken === "ETH") {
                         tx = await routerContract.swapExactTokensForETH(parsedAmountIn, 0, path, userAddress, deadline);
                     } else {
                         tx = await routerContract.swapExactTokensForTokens(parsedAmountIn, 0, path, userAddress, deadline);
                     }
-                    swapStatus.innerText = "Awaiting block confirmation... Hash: " + tx.hash.substring(0, 12);
+                    swapStatus.innerText = "Awaiting chain confirmations... Hash: " + tx.hash.substring(0, 12);
                     await tx.wait();
                 }
 
@@ -413,7 +414,7 @@
             } catch (err) {
                 console.error(err);
                 swapStatus.style.color = "#e11d48";
-                swapStatus.innerText = "Swap transaction cancelled or dropped.";
+                swapStatus.innerText = "Swap transaction aborted or rejected by wallet.";
             }
         }
 
@@ -436,7 +437,7 @@
 
             try {
                 transferStatus.style.color = "#38bdf8";
-                transferStatus.innerText = `Confirming ${token} transaction...`;
+                transferStatus.innerText = `Confirming ${token} transaction inside wallet...`;
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
 
@@ -469,7 +470,7 @@
             }
         }
 
-        // Direct Core Handshake trigger: Instantly opens wallet injection popup upon interaction.
+        // Direct Handshake Trigger Module: Instantly opens Wallet Injection popup upon click
         async function initWalletConnect() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
