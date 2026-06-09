@@ -14,21 +14,38 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install All Dependencies
+      - name: Install Base Dependencies
         run: |
           npm install --legacy-peer-deps
-          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv --legacy-peer-deps
-          npm install ethers --legacy-peer-deps
+          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv ethers --legacy-peer-deps
 
-      - name: Compile Smart Contract
-        # ডেপ্লয় করার আগে এই কমান্ডটি artifacts ফোল্ডার তৈরি করবে যা মিসিং ছিল
-        run: npx hardhat compile
-
-      - name: Deploy Contract Absolute Fix
+      - name: Force Create Config and Deploy
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
+        # এই সিঙ্গেল স্টেপটি নিজেরা একটি কনফিগ তৈরি করবে, বিল্ড করবে এবং কোনো এরর ছাড়া ডেপ্লয় করবে
         run: |
+          # ১. একটি পারফেক্ট হার্ডহ্যাট কনফিগ ফাইল তৈরি করা হচ্ছে
+          cat << 'EOF' > hardhat.config.cjs
+          require("@nomicfoundation/hardhat-toolbox");
+          require("dotenv").config();
+
+          module.exports = {
+            solidity: "0.8.24",
+            networks: {
+              arc_testnet: {
+                url: process.env.ARC_RPC_URL || "",
+                chainId: 5042002,
+                accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+              }
+            }
+          };
+          EOF
+
+          # ২. হার্ডহ্যাটকে এই কাস্টম কনফিগ ফাইল দিয়ে কম্পাইল করতে বাধ্য করা হচ্ছে
+          npx hardhat compile --config hardhat.config.cjs
+
+          # ৩. এবার নোড দিয়ে সরাসরি আর্টফ্যাক্ট থেকে বাইটকোড নিয়ে ডেপ্লয় করা হচ্ছে
           cat << 'EOF' > standalone-deploy.js
           import { ethers } from "ethers";
           import fs from "fs";
@@ -45,13 +62,8 @@ jobs:
             const wallet = new ethers.Wallet(rawKey, provider);
             console.log("Deploying contract with account:", wallet.address);
             
-            // কম্পাইল হওয়া ফোল্ডার থেকে ফাইল খোঁজা হচ্ছে
             const artifactsDir = path.join(process.cwd(), "artifacts/contracts");
-            if (!fs.existsSync(artifactsDir)) {
-              throw new Error("Artifacts directory not found. Please compile the contract first.");
-            }
             
-            // সাবফোল্ডারসহ আসল .json ফাইলটি খুঁজে বের করার অটোমেটিক লজিক
             function getJsonFiles(dir) {
               let results = [];
               const list = fs.readdirSync(dir);
@@ -72,7 +84,6 @@ jobs:
               throw new Error("Compiled contract JSON artifact not found.");
             }
             
-            // প্রথম ভ্যালিড কনট্রাক্ট ফাইলটি রিড করা হবে
             const contractData = JSON.parse(fs.readFileSync(jsonFiles[0], "utf8"));
             const abi = contractData.abi;
             const bytecode = contractData.bytecode;
