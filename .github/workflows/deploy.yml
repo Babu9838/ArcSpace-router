@@ -17,13 +17,11 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Fix ESM and Config Conflict
-        # এই কমান্ডটি প্রজেক্টে কোনো রিনেম ছাড়াই ESM স্ক্রিপ্ট রান করতে সাহায্য করবে
-        run: npm install -g sucrase
-
-      - name: Deploy Contract
+      - name: Deploy Contract One-Click Fix
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # sucrase-node ব্যবহার করে স্ক্রিপ্টটি রান করা হচ্ছে যেন মডিউল এরর না আসে
-        run: npx sucrase-node node_modules/.bin/hardhat run scripts/deploy.js --network arc_testnet
+        # এই সিঙ্গেল লাইনটি স্ক্রিপ্ট ফোল্ডারের জন্য সাময়িকভাবে মডিউল অন করবে, কিন্তু মূল কনফিগ ফাইলকে ডিস্টার্ব করবে না
+        run: |
+          echo '{"type": "module"}' > scripts/package.json
+          npx hardhat run scripts/deploy.js --network arc_testnet
