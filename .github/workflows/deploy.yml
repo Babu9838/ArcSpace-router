@@ -15,8 +15,10 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        # এখানে --legacy-peer-deps যুক্ত করা হয়েছে যেন ভার্সন অমিল থাকলেও ফোর্স ইনস্টল হয়
         run: npm install --legacy-peer-deps
 
-      - name: Deploy
-        run: echo Done
+      - name: Deploy Contract
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          RPC_URL: ${{ secrets.RPC_URL }}
+        run: npx hardhat run scripts/deploy.js --network mainnet
