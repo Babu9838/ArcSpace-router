@@ -15,32 +15,12 @@ jobs:
           node-version: 22
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+        # ডিপেন্ডেন্সিগুলো একদম ফ্রেশ এবং ক্লিনভাবে ইনস্টল করার জন্য
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
-      - name: Auto-Create Hardhat Config and ESM
-        # এটি প্যাকেজকে মডিউল করবে এবং একটি ফ্রেশ কনফিগ ফাইল তৈরি করবে যা আপনার স্ক্রিনশটের সাথে ১০০% ম্যাচ করে
-        run: |
-          npm pkg set type="module"
-          cat << 'EOF' > hardhat.config.cjs
-          require("@nomicfoundation/hardhat-toolbox");
-          require("dotenv").config();
-
-          module.exports = {
-            solidity: "0.8.24",
-            networks: {
-              arc_testnet: {
-                url: process.env.ARC_RPC_URL || "",
-                chainId: 5042002,
-                accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
-              }
-            }
-          };
-          EOF
-
-      - name: Deploy Contract
+      - name: Deploy Contract One-Click Fix
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          # আপনার কনফিগ অনুযায়ী এটিকে ARC_RPC_URL-এ পাস করা হচ্ছে
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # কনফিগ ফাইলের পাথ সরাসরি নির্দিষ্ট করে দেওয়া হলো যেন কোনো মিস না হয়
-        run: npx hardhat run scripts/deploy.js --network arc_testnet --config hardhat.config.cjs
+        # কোনো মডিউল বা কনফিগ এরর ছাড়াই সরাসরি নোড রানটাইম দিয়ে স্ক্রিপ্টটি পুশ করা হচ্ছে
+        run: npx hardhat run scripts/deploy.js --network arc_testnet
