@@ -17,9 +17,12 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Configure ESM Module
+        # এটি package.json-এ type: module সেট করবে যা hardhat চাচ্ছে
+        run: npm pkg set type="module"
+
       - name: Deploy Contract
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           RPC_URL: ${{ secrets.RPC_URL }}
-        # এখানে node--experimental-default-type=module দিয়ে রান করা হচ্ছে যেন কনফ্লিক্ট না হয়
-        run: npx hardhat run scripts/deploy.js --network mainnet --experimental-default-type=module
+        run: npx hardhat run scripts/deploy.js --network mainnet
