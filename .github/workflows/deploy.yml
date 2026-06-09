@@ -15,86 +15,43 @@ jobs:
           node-version: 22
 
       - name: Install Pure Deployment Tools
-        # কোনো কনফ্লিক্ট ছাড়া সরাসরি সলিডিটি কম্পাইলার এবং ইথার্স লাইব্রেরি নামানো হচ্ছে
         run: npm install ethers solc@0.8.24 --legacy-peer-deps
 
-      - name: Compile and Deploy via Pure JS Engine
+      - name: Create JS Script
+        # cat কমান্ডের কোনো ঝামেলা ছাড়া একদম নিরাপদ উপায়ে ফাইল তৈরি করা হচ্ছে
+        run: |
+          echo 'const { ethers } = require("ethers");' > engine-deploy.cjs
+          echo 'const solc = require("solc");' >> engine-deploy.cjs
+          echo 'const fs = require("fs");' >> engine-deploy.cjs
+          echo 'const path = require("path");' >> engine-deploy.cjs
+          echo 'async function main() {' >> engine-deploy.cjs
+          echo '    const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);' >> engine-deploy.cjs
+          echo '    let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";' >> engine-deploy.cjs
+          echo '    if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) { rawKey = "0x" + rawKey; }' >> engine-deploy.cjs
+          echo '    const wallet = new ethers.Wallet(rawKey, provider);' >> engine-deploy.cjs
+          echo '    console.log("🚀 Wallet address verified:", wallet.address);' >> engine-deploy.cjs
+          echo '    const contractsDir = path.join(process.cwd(), "contracts");' >> engine-deploy.cjs
+          echo '    const files = fs.readdirSync(contractsDir);' >> engine-deploy.cjs
+          echo '    const solFile = files.find(f => f.endsWith(".sol"));' >> engine-deploy.cjs
+          echo '    console.log("📦 Compiling:", solFile);' >> engine-deploy.cjs
+          echo '    const source = fs.readFileSync(path.join(contractsDir, solFile), "utf8");' >> engine-deploy.cjs
+          echo '    const input = { language: "Solidity", sources: { [solFile]: { content: source } }, settings: { outputSelection: { "*": { "*": ["abi", "evm.bytecode.object"] } } } };' >> engine-deploy.cjs
+          echo '    const output = JSON.parse(solc.compile(JSON.stringify(input)));' >> engine-deploy.cjs
+          echo '    const contractName = Object.keys(output.contracts[solFile])[0];' >> engine-deploy.cjs
+          echo '    const contractData = output.contracts[solFile][contractName];' >> engine-deploy.cjs
+          echo '    console.log("⚡ Deploying contract:", contractName);' >> engine-deploy.cjs
+          echo '    const factory = new ethers.ContractFactory(contractData.abi, contractData.evm.bytecode.object, wallet);' >> engine-deploy.cjs
+          echo '    const contract = await factory.deploy();' >> engine-deploy.cjs
+          echo '    await contract.waitForDeployment();' >> engine-deploy.cjs
+          echo '    console.log("====================================");' >> engine-deploy.cjs
+          echo '    console.log("🎉 SUCCESS! Address:", await contract.getAddress());' >> engine-deploy.cjs
+          echo '    console.log("====================================");' >> engine-deploy.cjs
+          echo '}' >> engine-deploy.cjs
+          echo 'main().catch((error) => { console.error("❌ Error:", error); process.exitCode = 1; });' >> engine-deploy.cjs
+
+      - name: Run Pure JS Engine
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        run: |
-          cat << 'EOF' > engine-deploy.js
-          const { ethers } = require("ethers");
-          const solc = require("solc");
-          const fs = require("fs");
-          const path = require("path");
-
-          async function main() {
-              const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
-              let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
-              if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) {
-                  rawKey = "0x" + rawKey;
-              }
-              const wallet = new ethers.Wallet(rawKey, provider);
-              console.log("🚀 Deploying contract with wallet:", wallet.address);
-
-              // contracts ফোল্ডারে থাকা সলিডিটি ফাইলটি খোঁজা হচ্ছে
-              const contractsDir = path.join(process.cwd(), "contracts");
-              if (!fs.existsSync(contractsDir)) {
-                  throw new Error("Contracts folder not found in your repository!");
-              }
-
-              const files = fs.readdirSync(contractsDir);
-              const solFile = files.find(f => f.endsWith(".sol"));
-              if (!solFile) {
-                  throw new Error("No .sol file found inside contracts folder!");
-              }
-
-              console.log(`📦 Found contract file: ${solFile}. Compiling...`);
-              const contractPath = path.join(contractsDir, solFile);
-              const source = fs.readFileSync(contractPath, "utf8");
-
-              // পিওর সলিডিটি স্ট্যান্ডার্ড ইনপুট কম্পাইলেশন
-              const input = {
-                  language: "Solidity",
-                  sources: { [solFile]: { content: source } },
-                  settings: { outputSelection: { "*": { "*": ["abi", "evm.bytecode.object"] } } }
-              };
-
-              const output = JSON.parse(solc.compile(JSON.stringify(input)));
-              
-              if (output.errors) {
-                  output.errors.forEach(err => console.log(err.formattedMessage));
-              }
-
-              const contractName = Object.keys(output.contracts[solFile])[0];
-              const contractData = output.contracts[solFile][contractName];
-
-              const abi = contractData.abi;
-              const bytecode = contractData.evm.bytecode.object;
-
-              if (!bytecode || bytecode === "") {
-                  throw new Error("Compilation failed, no bytecode generated.");
-              }
-
-              console.log(`⚡ Compilation successful! Deploying contract: ${contractName}...`);
-              const factory = new ethers.ContractFactory(abi, bytecode, wallet);
-              const contract = await factory.deploy();
-
-              console.log("⏳ Waiting for network confirmation...");
-              await contract.waitForDeployment();
-
-              console.log("====================================");
-              console.log("🎉 SUCCESS! Smart Contract Deployed!");
-              console.log("Contract Address:", await contract.getAddress());
-              console.log("====================================");
-          }
-
-          main().catch((error) => {
-              console.error("❌ Deployment failed:", error);
-              process.exitCode = 1;
-          });
-          EOF
-
-          # নোডকে জোরপূর্বক CommonJS টাইপে রান করানো হচ্ছে যেন প্রজেক্ট টাইপ কনফ্লিক্ট না করে
-          node engine-deploy.js
+        # ফাইলটি সরাসরি CommonJS (.cjs) হিসেবে এক্সিকিউট হবে, ফলে কোনো লুপ বা হ্যাং হওয়ার সুযোগ নেই
+        run: node engine-deploy.cjs
