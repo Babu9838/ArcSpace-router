@@ -17,11 +17,15 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Deploy Contract One-Click Fix
+      - name: Complete One-Click Fix
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # এই সিঙ্গেল লাইনটি স্ক্রিপ্ট ফোল্ডারের জন্য সাময়িকভাবে মডিউল অন করবে, কিন্তু মূল কনফিগ ফাইলকে ডিস্টার্ব করবে না
+        # ১. পুরো প্রজেক্ট মডিউল করা হবে
+        # ২. কনফিগ ফাইলটিকে সাময়িকভাবে .cjs করা হবে যেন হার্ডহ্যাট এরর না দেয়
         run: |
-          echo '{"type": "module"}' > scripts/package.json
+          npm pkg set type="module"
+          if [ -f "hardhat.config.js" ]; then
+            mv hardhat.config.js hardhat.config.cjs
+          fi
           npx hardhat run scripts/deploy.js --network arc_testnet
