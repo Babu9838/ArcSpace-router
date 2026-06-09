@@ -22,9 +22,9 @@ jobs:
 
       - name: Deploy via Universal Bridge Engine
         env:
-          # আপনার গитহাব সিক্রেটসের সাথে নামের অমিল দূর করতে সরাসরি ভ্যালু ম্যাপিং
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          RPC_URL: ${{ secrets.RPC_URL }}
+          # ⚠️ এখানে ইনভার্টেড কমার ("") ভেতরে আপনার আসল টেস্টনেট RPC URL-টি সরাসরি বসিয়ে দিন
+          RPC_URL:https://rpc.testnet.arc.network "আপনার_টেস্টনেটের_RPC_লিংক_এখানে_বসান"
         run: |
           cat << 'EOF' > universal-deploy.js
           const { ethers } = require("ethers");
@@ -33,14 +33,13 @@ jobs:
           const path = require("path");
 
           async function main() {
-              // সরাসরি সিক্রেটস থেকে আসা ইউআরএল রিড করা হচ্ছে
               let rpcUrl = process.env.RPC_URL ? process.env.RPC_URL.trim() : "";
               
-              if (!rpcUrl) {
-                  throw new Error("RPC_URL is missing in GitHub Secrets! Please check your repository settings.");
+              if (!rpcUrl || rpcUrl.includes("আপনার_টেস্টনেটের_RPC_লিংক")) {
+                  throw new Error("RPC_URL is missing or placeholder not replaced! Please put your actual URL link inside deploy.yml.");
               }
 
-              // কোনো কারণে লিংকের শুরুতে http/https মিসিং থাকলে অটো-ফিক্স
+              // লিংকের শুরুতে কোনো কারণে http/https না থাকলে অটো-অ্যাড করার লজিক
               if (!rpcUrl.startsWith("http://") && !rpcUrl.startsWith("https://")) {
                   rpcUrl = "https://" + rpcUrl;
               }
@@ -51,13 +50,13 @@ jobs:
                   rawKey = "0x" + rawKey;
               }
               const wallet = new ethers.Wallet(rawKey, provider);
-              console.log("🚀 Bridge Engine Ready. Wallet:", wallet.address);
+              console.log("🚀 Bridge Engine Ready. Wallet Verified:", wallet.address);
 
               const contractsDir = path.join(process.cwd(), "contracts");
               const files = fs.readdirSync(contractsDir);
               const solFile = files.find(f => f.endsWith(".sol"));
               
-              if (!solFile) throw new Error("No Solidity contract file found in contracts directory!");
+              if (!solFile) throw new Error("No Solidity contract file found!");
               console.log("📦 Compiling file directly:", solFile);
 
               const source = fs.readFileSync(path.join(contractsDir, solFile), "utf8");
@@ -74,17 +73,15 @@ jobs:
               const abi = contractData.abi;
               const bytecode = contractData.evm.bytecode.object;
 
-              console.log("⚡ Deploying Contract to Network:", contractName);
+              console.log("⚡ Deploying Contract:", contractName);
               const factory = new ethers.ContractFactory(abi, bytecode, wallet);
               
-              // গ্যাস ট্র্যাকিং অটোমেটেড করা হলো যেন ফেইল না হয়
               const contract = await factory.deploy();
-
-              console.log("⏳ Syncing with network...");
+              console.log("⏳ Syncing with blockchain...");
               await contract.waitForDeployment();
 
               console.log("====================================");
-              console.log("🎉 SUCCESS! Smart Contract Live!");
+              console.log("🎉 SUCCESS! Smart Contract Successfully Live!");
               console.log("Contract Address:", await contract.getAddress());
               console.log("====================================");
           }
