@@ -1,0 +1,29 @@
+name: Deploy Arc
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm install
+
+      - name: Deploy Contract
+        run: npx hardhat run scripts/deploy.js --network arc_testnet
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          ARC_RPC_URL: ${{ secrets.ARC_RPC_URL }}
