@@ -1,0 +1,10 @@
+{
+"name": "arcspace-contract",
+"version": "1.0.0",
+"private": true,
+"devDependencies": {
+"@nomicfoundation/hardhat-toolbox": "^6.1.0",
+"dotenv": "^17.2.1",
+"hardhat": "^3.0.0"
+}
+}
