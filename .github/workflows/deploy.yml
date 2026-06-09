@@ -1,31 +1,29 @@
 name: Deploy Arc
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-deploy:
+  deploy:
+    runs-on: ubuntu-latest
 
-runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-steps:
+      - name: Debug
+        run: |
+          pwd
+          ls -la
 
-  - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-  - name: Debug
-    run: |
-      pwd
-      ls -la
+      - name: Install
+        run: |
+          ls -la
+          cat package.json
+          npm install
 
-  - uses: actions/setup-node@v4
-    with:
-      node-version: 20
-
-  - name: Install
-    run: |
-      ls -la
-      cat package.json
-      npm install
-
-  - name: Deploy
-    run: echo Done
+      - name: Deploy
+        run: echo Done
