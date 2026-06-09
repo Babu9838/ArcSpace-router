@@ -14,27 +14,61 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install All Dependencies
-        run: |
-          npm install --legacy-peer-deps
-          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv --legacy-peer-deps
+      - name: Install Base Dependencies
+        run: npm install ethers dotenv --legacy-peer-deps
 
       - name: Deploy Contract Absolute Fix
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # এটি হার্ডহ্যাটের সমস্ত ফাইল চেকিং বাইপাস করে সরাসরি নোড রানটাইম দিয়ে ইন্টারনাল এপিআই ব্যবহার করে ডেপ্লয় করবে
+        # এটি হার্ডহ্যাটের কনফিগ চেকিং পুরোপুরি বাইপাস করে সরাসরি নেটওয়ার্কে স্মার্ট কনট্রাক্ট পুশ করবে
         run: |
-          cat << 'EOF' > run-deploy.cjs
-          const hre = require("hardhat");
+          cat << 'EOF' > standalone-deploy.js
+          import { ethers } from "ethers";
+          import fs from "fs";
+          import path from "path";
+
           async function main() {
-            console.log("Starting deployment on arc_testnet...");
-            // আপনার আসল ডেপ্লয়মেন্ট কোডটি ব্যাকগ্রাউন্ডে রান করা হচ্ছে
-            require("./scripts/deploy.js");
+            const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
+            const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+            
+            console.log("Deploying contract with account:", wallet.address);
+            
+            // আর্টিফ্যাক্ট ফোল্ডার থেকে আপনার তৈরি করা কনট্রাক্টের ABI এবং Bytecode খোঁজা হচ্ছে
+            const artifactsDir = path.join(process.cwd(), "artifacts/contracts");
+            if (!fs.existsSync(artifactsDir)) {
+              throw new Error("Artifacts directory not found. Please compile the contract first.");
+            }
+            
+            // প্রথম জেনারেট হওয়া সলিডিটি ফাইলটির জেসন খুঁজে বের করা
+            const files = fs.readdirSync(artifactsDir, { recursive: true });
+            const jsonFile = files.find(f => f.endsWith(".json") && !f.endsWith(".dbg.json"));
+            
+            if (!jsonFile) {
+              throw new Error("Compiled contract JSON artifact not found.");
+            }
+            
+            const contractData = JSON.parse(fs.readFileSync(path.join(artifactsDir, jsonFile), "utf8"));
+            const abi = contractData.abi;
+            const bytecode = contractData.bytecode;
+            
+            const factory = new ethers.ContractFactory(abi, bytecode, wallet);
+            const contract = await factory.deploy();
+            
+            console.log("Waiting for deployment confirmation...");
+            await contract.waitForDeployment();
+            
+            console.log("====================================");
+            console.log("🎉 Contract Deployed Successfully!");
+            console.log("Contract Address:", await contract.getAddress());
+            console.log("====================================");
           }
+
           main().catch((error) => {
-            console.error(error);
+            console.error("Deployment failed:", error);
             process.exitCode = 1;
           });
           EOF
-          npx hardhat run run-deploy.cjs --network arc_testnet
+          
+          # নোড রানটাইম দিয়ে সরাসরি এক্সিকিউট করা হচ্ছে
+          NODE_OPTIONS="--experimental-default-type=module" node standalone-deploy.js
