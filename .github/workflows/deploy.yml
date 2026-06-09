@@ -15,7 +15,8 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        run: npm install
+        # এখানে --legacy-peer-deps যুক্ত করা হয়েছে যেন ভার্সন অমিল থাকলেও ফোর্স ইনস্টল হয়
+        run: npm install --legacy-peer-deps
 
       - name: Deploy
         run: echo Done
