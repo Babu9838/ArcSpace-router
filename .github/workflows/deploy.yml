@@ -12,7 +12,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # এখানে নোড ভার্সন ২০ থেকে বাড়িয়ে ২২ করা হয়েছে
+          node-version: 22
 
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
