@@ -17,18 +17,13 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Configure ESM Project
-        # ১. এটি package.json-এ "type": "module" যোগ করবে
-        # ২. লিনাক্স কমান্ড (mv) দিয়ে hardhat.config.js-কে অটোমেটিক hardhat.config.cjs বানিয়ে দেবে
-        run: |
-          npm pkg set type="module"
-          if [ -f "hardhat.config.js" ]; then
-            mv hardhat.config.js hardhat.config.cjs
-          fi
+      - name: Fix ESM and Config Conflict
+        # এই কমান্ডটি প্রজেক্টে কোনো রিনেম ছাড়াই ESM স্ক্রিপ্ট রান করতে সাহায্য করবে
+        run: npm install -g sucrase
 
       - name: Deploy Contract
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # এবার সঠিক নেটওয়ার্ক এবং কনফিগারেশন নিয়ে রান হবে
-        run: npx hardhat run scripts/deploy.js --network arc_testnet
+        # sucrase-node ব্যবহার করে স্ক্রিপ্টটি রান করা হচ্ছে যেন মডিউল এরর না আসে
+        run: npx sucrase-node node_modules/.bin/hardhat run scripts/deploy.js --network arc_testnet
