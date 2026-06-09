@@ -15,11 +15,9 @@ jobs:
           node-version: 22
 
       - name: Install Pure Core Tools
-        # হার্ডহ্যাটের স্ক্রিপ্টিং জট এড়াতে শুধু কম্পাইলার এবং ইথার্স ব্যবহার করছি
         run: npm install ethers solc@0.8.24 --legacy-peer-deps
 
       - name: Force Project CommonJS
-        # নোড স্ক্রিপ্ট যাতে কোনো ঝামেলা ছাড়া ব্যাকগ্রাউন্ডে রান করতে পারে
         run: npm pkg set type="commonjs"
 
       - name: Deploy via Universal Bridge Engine
@@ -34,7 +32,15 @@ jobs:
           const path = require("path");
 
           async function main() {
-              const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
+              // RPC URL-এর ফরম্যাট এবং প্রোটোকল অটো-ফিক্স করার লজিক (unsupported protocol এরর দূর করতে)
+              let rpcUrl = process.env.ARC_RPC_URL ? process.env.ARC_RPC_URL.trim() : "";
+              if (rpcUrl && !rpcUrl.startsWith("http://") && !rpcUrl.startsWith("https://")) {
+                  rpcUrl = "https://" + rpcUrl;
+              }
+
+              if (!rpcUrl) throw new Error("RPC_URL is missing in GitHub Secrets!");
+
+              const provider = new ethers.JsonRpcProvider(rpcUrl);
               let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
               if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) {
                   rawKey = "0x" + rawKey;
@@ -65,7 +71,9 @@ jobs:
 
               console.log("⚡ Deploying Contract to Arc Testnet:", contractName);
               const factory = new ethers.ContractFactory(abi, bytecode, wallet);
-              const contract = await factory.deploy();
+              
+              // গ্যাস লিমিট অটো-সেট করে দেওয়া হচ্ছে যাতে নেটওয়ার্ক ফিডব্যাকে আটকে না যায়
+              const contract = await factory.deploy({ gasLimit: 3000000 });
 
               console.log("⏳ Syncing with network...");
               await contract.waitForDeployment();
@@ -82,5 +90,4 @@ jobs:
           });
           EOF
 
-          # কোনো হার্ডহ্যাট কমান্ড ছাড়াই সরাসরি রান
           node universal-deploy.js
