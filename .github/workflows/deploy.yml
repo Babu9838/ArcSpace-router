@@ -21,7 +21,6 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # এটি হার্ডহ্যাটের কনফিগ চেকিং পুরোপুরি বাইপাস করে সরাসরি নেটওয়ার্কে স্মার্ট কনট্রাক্ট পুশ করবে
         run: |
           cat << 'EOF' > standalone-deploy.js
           import { ethers } from "ethers";
@@ -30,17 +29,25 @@ jobs:
 
           async function main() {
             const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
-            const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
             
+            // প্রাইভেট কি-র ফরম্যাট অটোমেটিক ঠিক করার জন্য (0x কনফ্লিক্ট ফিক্স)
+            let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
+            if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) {
+              rawKey = "0x" + rawKey;
+            }
+            
+            if (!rawKey) {
+              throw new Error("PRIVATE_KEY secret is missing or empty in GitHub Settings.");
+            }
+
+            const wallet = new ethers.Wallet(rawKey, provider);
             console.log("Deploying contract with account:", wallet.address);
             
-            // আর্টিফ্যাক্ট ফোল্ডার থেকে আপনার তৈরি করা কনট্রাক্টের ABI এবং Bytecode খোঁজা হচ্ছে
             const artifactsDir = path.join(process.cwd(), "artifacts/contracts");
             if (!fs.existsSync(artifactsDir)) {
               throw new Error("Artifacts directory not found. Please compile the contract first.");
             }
             
-            // প্রথম জেনারেট হওয়া সলিডিটি ফাইলটির জেসন খুঁজে বের করা
             const files = fs.readdirSync(artifactsDir, { recursive: true });
             const jsonFile = files.find(f => f.endsWith(".json") && !f.endsWith(".dbg.json"));
             
@@ -70,5 +77,4 @@ jobs:
           });
           EOF
           
-          # নোড রানটাইম দিয়ে সরাসরি এক্সিকিউট করা হচ্ছে
           NODE_OPTIONS="--experimental-default-type=module" node standalone-deploy.js
