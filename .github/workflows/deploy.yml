@@ -12,7 +12,6 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # এখানে নোড ভার্সন ২০ থেকে বাড়িয়ে ২২ করা হয়েছে
           node-version: 22
 
       - name: Install Dependencies
