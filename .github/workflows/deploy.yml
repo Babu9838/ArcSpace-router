@@ -24,7 +24,7 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           # ⚠️ এখানে ইনভার্টেড কমার ("") ভেতরে আপনার আসল টেস্টনেট RPC URL-টি সরাসরি বসিয়ে দিন
-          RPC_URL:https://rpc.testnet.arc.network "আপনার_টেস্টনেটের_RPC_লিংক_এখানে_বসান"
+          "https://rpc.testnet.arc.network"
         run: |
           cat << 'EOF' > universal-deploy.js
           const { ethers } = require("ethers");
