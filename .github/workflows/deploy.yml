@@ -14,8 +14,15 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Base Dependencies
-        run: npm install ethers dotenv --legacy-peer-deps
+      - name: Install All Dependencies
+        run: |
+          npm install --legacy-peer-deps
+          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv --legacy-peer-deps
+          npm install ethers --legacy-peer-deps
+
+      - name: Compile Smart Contract
+        # ডেপ্লয় করার আগে এই কমান্ডটি artifacts ফোল্ডার তৈরি করবে যা মিসিং ছিল
+        run: npx hardhat compile
 
       - name: Deploy Contract Absolute Fix
         env:
@@ -30,32 +37,43 @@ jobs:
           async function main() {
             const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
             
-            // প্রাইভেট কি-র ফরম্যাট অটোমেটিক ঠিক করার জন্য (0x কনফ্লিক্ট ফিক্স)
             let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
             if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) {
               rawKey = "0x" + rawKey;
-            }
-            
-            if (!rawKey) {
-              throw new Error("PRIVATE_KEY secret is missing or empty in GitHub Settings.");
             }
 
             const wallet = new ethers.Wallet(rawKey, provider);
             console.log("Deploying contract with account:", wallet.address);
             
+            // কম্পাইল হওয়া ফোল্ডার থেকে ফাইল খোঁজা হচ্ছে
             const artifactsDir = path.join(process.cwd(), "artifacts/contracts");
             if (!fs.existsSync(artifactsDir)) {
               throw new Error("Artifacts directory not found. Please compile the contract first.");
             }
             
-            const files = fs.readdirSync(artifactsDir, { recursive: true });
-            const jsonFile = files.find(f => f.endsWith(".json") && !f.endsWith(".dbg.json"));
-            
-            if (!jsonFile) {
+            // সাবফোল্ডারসহ আসল .json ফাইলটি খুঁজে বের করার অটোমেটিক লজিক
+            function getJsonFiles(dir) {
+              let results = [];
+              const list = fs.readdirSync(dir);
+              list.forEach((file) => {
+                file = path.join(dir, file);
+                const stat = fs.statSync(file);
+                if (stat && stat.isDirectory()) {
+                  results = results.concat(getJsonFiles(file));
+                } else if (file.endsWith(".json") && !file.endsWith(".dbg.json")) {
+                  results.push(file);
+                }
+              });
+              return results;
+            }
+
+            const jsonFiles = getJsonFiles(artifactsDir);
+            if (jsonFiles.length === 0) {
               throw new Error("Compiled contract JSON artifact not found.");
             }
             
-            const contractData = JSON.parse(fs.readFileSync(path.join(artifactsDir, jsonFile), "utf8"));
+            // প্রথম ভ্যালিড কনট্রাক্ট ফাইলটি রিড করা হবে
+            const contractData = JSON.parse(fs.readFileSync(jsonFiles[0], "utf8"));
             const abi = contractData.abi;
             const bytecode = contractData.bytecode;
             
