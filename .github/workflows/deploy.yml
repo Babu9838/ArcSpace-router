@@ -14,20 +14,37 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Dependencies
+      - name: Install All Dependencies
         run: |
           npm install --legacy-peer-deps
           npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv ethers --legacy-peer-deps
 
-      - name: Reset Package Type
-        # প্রজেক্টের মডিউল টাইপ নিয়ে যেন হার্ডহ্যাট কোনো এরর না দেয়, তাই টাইপ ডিলেট করে দেওয়া হচ্ছে
-        run: npm pkg delete type
+      - name: Force Project into ESM Mode
+        # হার্ডহ্যাটের লেটেস্ট রিকোয়ারমেন্ট অনুযায়ী package.json-কে মডিউল টাইপ করা হচ্ছে
+        run: npm pkg set type="module"
 
-      - name: Deploy Contract Guaranteed
+      - name: Deploy Contract via ESM Config
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # গিটহাবের রুটেই একটি সাধারণ হার্ডহ্যাট কনফিগ দিয়ে রান করা হচ্ছে, যা সর্বোচ্চ ১-২ মিনিটে শেষ হবে
+        # এখানে আমরা মডিউল বা ESM ফরম্যাটে হার্ডহ্যাট কনফিগ ফাইল তৈরি করছি
         run: |
-          echo 'require("@nomicfoundation/hardhat-toolbox"); require("dotenv").config(); module.exports = { solidity: "0.8.24", networks: { arc_testnet: { url: process.env.ARC_RPC_URL, chainId: 5042002, accounts: [process.env.PRIVATE_KEY] } } };' > hardhat.config.js
+          cat << 'EOF' > hardhat.config.js
+          import "@nomicfoundation/hardhat-toolbox";
+          import dotenv from "dotenv";
+          dotenv.config();
+
+          export default {
+            solidity: "0.8.24",
+            networks: {
+              arc_testnet: {
+                url: process.env.ARC_RPC_URL || "",
+                chainId: 5042002,
+                accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+              }
+            }
+          };
+          EOF
+
+          # এবার হার্ডহ্যাট কোনো আপত্তি ছাড়াই ১-২ মিনিটে ডেপ্লয় সম্পন্ন করবে
           npx hardhat run scripts/deploy.js --network arc_testnet
