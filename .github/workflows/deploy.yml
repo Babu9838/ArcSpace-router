@@ -17,15 +17,12 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Complete One-Click Fix
+      - name: Deploy Contract Guaranteed Fix
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # ১. পুরো প্রজেক্ট মডিউল করা হবে
-        # ২. কনফিগ ফাইলটিকে সাময়িকভাবে .cjs করা হবে যেন হার্ডহ্যাট এরর না দেয়
+        # ১. প্রজেক্টের প্যাকেজ মডিউল ডিক্লেয়ার করা হবে
+        # ২. হার্ডহ্যাটকে সরাসরি কনফিগ ফাইলের পাথ চিনিয়ে দেওয়া হবে যেন কোনো কনফ্লিক্ট না হয়
         run: |
           npm pkg set type="module"
-          if [ -f "hardhat.config.js" ]; then
-            mv hardhat.config.js hardhat.config.cjs
-          fi
-          npx hardhat run scripts/deploy.js --network arc_testnet
+          npx hardhat run scripts/deploy.js --network arc_testnet --config hardhat.config.js
