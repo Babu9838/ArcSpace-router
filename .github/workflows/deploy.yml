@@ -14,37 +14,73 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install All Dependencies
-        run: |
-          npm install --legacy-peer-deps
-          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv ethers --legacy-peer-deps
+      - name: Install Pure Core Tools
+        # হার্ডহ্যাটের স্ক্রিপ্টিং জট এড়াতে শুধু কম্পাইলার এবং ইথার্স ব্যবহার করছি
+        run: npm install ethers solc@0.8.24 --legacy-peer-deps
 
-      - name: Force Project into ESM Mode
-        # হার্ডহ্যাটের লেটেস্ট রিকোয়ারমেন্ট অনুযায়ী package.json-কে মডিউল টাইপ করা হচ্ছে
-        run: npm pkg set type="module"
+      - name: Force Project CommonJS
+        # নোড স্ক্রিপ্ট যাতে কোনো ঝামেলা ছাড়া ব্যাকগ্রাউন্ডে রান করতে পারে
+        run: npm pkg set type="commonjs"
 
-      - name: Deploy Contract via ESM Config
+      - name: Deploy via Universal Bridge Engine
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # এখানে আমরা মডিউল বা ESM ফরম্যাটে হার্ডহ্যাট কনফিগ ফাইল তৈরি করছি
         run: |
-          cat << 'EOF' > hardhat.config.js
-          import "@nomicfoundation/hardhat-toolbox";
-          import dotenv from "dotenv";
-          dotenv.config();
+          cat << 'EOF' > universal-deploy.js
+          const { ethers } = require("ethers");
+          const solc = require("solc");
+          const fs = require("fs");
+          const path = require("path");
 
-          export default {
-            solidity: "0.8.24",
-            networks: {
-              arc_testnet: {
-                url: process.env.ARC_RPC_URL || "",
-                chainId: 5042002,
-                accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+          async function main() {
+              const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
+              let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
+              if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) {
+                  rawKey = "0x" + rawKey;
               }
-            }
-          };
+              const wallet = new ethers.Wallet(rawKey, provider);
+              console.log("🚀 Bridge Engine Ready. Wallet:", wallet.address);
+
+              const contractsDir = path.join(process.cwd(), "contracts");
+              const files = fs.readdirSync(contractsDir);
+              const solFile = files.find(f => f.endsWith(".sol"));
+              
+              if (!solFile) throw new Error("No Solidity contract file found!");
+              console.log("📦 Compiling file directly:", solFile);
+
+              const source = fs.readFileSync(path.join(contractsDir, solFile), "utf8");
+              const input = {
+                  language: "Solidity",
+                  sources: { [solFile]: { content: source } },
+                  settings: { outputSelection: { "*": { "*": ["abi", "evm.bytecode.object"] } } }
+              };
+
+              const output = JSON.parse(solc.compile(JSON.stringify(input)));
+              const contractName = Object.keys(output.contracts[solFile])[0];
+              const contractData = output.contracts[solFile][contractName];
+
+              const abi = contractData.abi;
+              const bytecode = contractData.evm.bytecode.object;
+
+              console.log("⚡ Deploying Contract to Arc Testnet:", contractName);
+              const factory = new ethers.ContractFactory(abi, bytecode, wallet);
+              const contract = await factory.deploy();
+
+              console.log("⏳ Syncing with network...");
+              await contract.waitForDeployment();
+
+              console.log("====================================");
+              console.log("🎉 SUCCESS! Contract Successfully Live!");
+              console.log("Contract Address:", await contract.getAddress());
+              console.log("====================================");
+          }
+
+          main().catch((err) => {
+              console.error("❌ Fatal Error:", err.message);
+              process.exit(1);
+          });
           EOF
 
-          # এবার হার্ডহ্যাট কোনো আপত্তি ছাড়াই ১-২ মিনিটে ডেপ্লয় সম্পন্ন করবে
-          npx hardhat run scripts/deploy.js --network arc_testnet
+          # কোনো হার্ডহ্যাট কমান্ড ছাড়াই সরাসরি রান
+          node universal-deploy.js
