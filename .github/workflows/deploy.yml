@@ -10,20 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug
-        run: |
-          pwd
-          ls -la
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install
-        run: |
-          ls -la
-          cat package.json
-          npm install
+      - name: Install Dependencies
+        run: npm install
 
       - name: Deploy
         run: echo Done
