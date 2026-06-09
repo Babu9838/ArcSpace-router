@@ -15,12 +15,20 @@ jobs:
           node-version: 22
 
       - name: Install Dependencies
-        # ডিপেন্ডেন্সিগুলো একদম ফ্রেশ এবং ক্লিনভাবে ইনস্টল করার জন্য
-        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
-      - name: Deploy Contract One-Click Fix
+      - name: Fixed ESM Configuration
+        # গিটহাব নিজেই hardhat.config.js ফাইলটিকে সাময়িকভাবে .cjs বানিয়ে দেবে
+        # এবং প্রজেক্টকে মডিউল হিসেবে সেট করবে, যাতে কোনো ফাইল মিসিং বা মডিউল এরর না আসে
+        run: |
+          npm pkg set type="module"
+          if [ -f "hardhat.config.js" ]; then
+            mv hardhat.config.js hardhat.config.cjs
+          fi
+
+      - name: Deploy Contract
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # কোনো মডিউল বা কনফিগ এরর ছাড়াই সরাসরি নোড রানটাইম দিয়ে স্ক্রিপ্টটি পুশ করা হচ্ছে
-        run: npx hardhat run scripts/deploy.js --network arc_testnet
+        # কনফিগ ফাইলের নতুন পাথ সরাসরি নির্দিষ্ট করে দেওয়া হলো যেন একবারে রান হয়
+        run: npx hardhat run scripts/deploy.js --network arc_testnet --config hardhat.config.cjs
