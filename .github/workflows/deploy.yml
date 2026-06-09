@@ -31,12 +31,8 @@ jobs:
           const path = require("path");
 
           async function main() {
-              // ⚠️ ঠিক নিচের লাইনে সিঙ্গেল কোটের ('https://rpc.testnet.arc.network') ভেতরে আপনার আসল RPC URL পেস্ট করুন
-              let rpcUrl = 'https://rpc.arc-testnet.your-link-here';
-              
-              if (rpcUrl.includes("your-link-here")) {
-                  throw new Error("Please replace the placeholder with your actual RPC URL link!");
-              }
+              // আপনার জন্য সরাসরি Arc Testnet-এর পাবলিক আরপিসি লিংক এখানে বসিয়ে দেওয়া হলো
+              const rpcUrl = "https://rpc.arc-testnet.gelato.digital";
 
               const provider = new ethers.JsonRpcProvider(rpcUrl);
               let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
