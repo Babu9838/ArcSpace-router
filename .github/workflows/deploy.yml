@@ -14,96 +14,87 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Base Dependencies
-        run: |
-          npm install --legacy-peer-deps
-          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv ethers --legacy-peer-deps
+      - name: Install Pure Deployment Tools
+        # কোনো কনফ্লিক্ট ছাড়া সরাসরি সলিডিটি কম্পাইলার এবং ইথার্স লাইব্রেরি নামানো হচ্ছে
+        run: npm install ethers solc@0.8.24 --legacy-peer-deps
 
-      - name: Force Create Config and Deploy
+      - name: Compile and Deploy via Pure JS Engine
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # এই সিঙ্গেল স্টেপটি নিজেরা একটি কনফিগ তৈরি করবে, বিল্ড করবে এবং কোনো এরর ছাড়া ডেপ্লয় করবে
         run: |
-          # ১. একটি পারফেক্ট হার্ডহ্যাট কনফিগ ফাইল তৈরি করা হচ্ছে
-          cat << 'EOF' > hardhat.config.cjs
-          require("@nomicfoundation/hardhat-toolbox");
-          require("dotenv").config();
-
-          module.exports = {
-            solidity: "0.8.24",
-            networks: {
-              arc_testnet: {
-                url: process.env.ARC_RPC_URL || "",
-                chainId: 5042002,
-                accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
-              }
-            }
-          };
-          EOF
-
-          # ২. হার্ডহ্যাটকে এই কাস্টম কনফিগ ফাইল দিয়ে কম্পাইল করতে বাধ্য করা হচ্ছে
-          npx hardhat compile --config hardhat.config.cjs
-
-          # ৩. এবার নোড দিয়ে সরাসরি আর্টফ্যাক্ট থেকে বাইটকোড নিয়ে ডেপ্লয় করা হচ্ছে
-          cat << 'EOF' > standalone-deploy.js
-          import { ethers } from "ethers";
-          import fs from "fs";
-          import path from "path";
+          cat << 'EOF' > engine-deploy.js
+          const { ethers } = require("ethers");
+          const solc = require("solc");
+          const fs = require("fs");
+          const path = require("path");
 
           async function main() {
-            const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
-            
-            let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
-            if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) {
-              rawKey = "0x" + rawKey;
-            }
+              const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
+              let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
+              if (rawKey && !rawKey.startsWith("0x") && rawKey.length === 64) {
+                  rawKey = "0x" + rawKey;
+              }
+              const wallet = new ethers.Wallet(rawKey, provider);
+              console.log("🚀 Deploying contract with wallet:", wallet.address);
 
-            const wallet = new ethers.Wallet(rawKey, provider);
-            console.log("Deploying contract with account:", wallet.address);
-            
-            const artifactsDir = path.join(process.cwd(), "artifacts/contracts");
-            
-            function getJsonFiles(dir) {
-              let results = [];
-              const list = fs.readdirSync(dir);
-              list.forEach((file) => {
-                file = path.join(dir, file);
-                const stat = fs.statSync(file);
-                if (stat && stat.isDirectory()) {
-                  results = results.concat(getJsonFiles(file));
-                } else if (file.endsWith(".json") && !file.endsWith(".dbg.json")) {
-                  results.push(file);
-                }
-              });
-              return results;
-            }
+              // contracts ফোল্ডারে থাকা সলিডিটি ফাইলটি খোঁজা হচ্ছে
+              const contractsDir = path.join(process.cwd(), "contracts");
+              if (!fs.existsSync(contractsDir)) {
+                  throw new Error("Contracts folder not found in your repository!");
+              }
 
-            const jsonFiles = getJsonFiles(artifactsDir);
-            if (jsonFiles.length === 0) {
-              throw new Error("Compiled contract JSON artifact not found.");
-            }
-            
-            const contractData = JSON.parse(fs.readFileSync(jsonFiles[0], "utf8"));
-            const abi = contractData.abi;
-            const bytecode = contractData.bytecode;
-            
-            const factory = new ethers.ContractFactory(abi, bytecode, wallet);
-            const contract = await factory.deploy();
-            
-            console.log("Waiting for deployment confirmation...");
-            await contract.waitForDeployment();
-            
-            console.log("====================================");
-            console.log("🎉 Contract Deployed Successfully!");
-            console.log("Contract Address:", await contract.getAddress());
-            console.log("====================================");
+              const files = fs.readdirSync(contractsDir);
+              const solFile = files.find(f => f.endsWith(".sol"));
+              if (!solFile) {
+                  throw new Error("No .sol file found inside contracts folder!");
+              }
+
+              console.log(`📦 Found contract file: ${solFile}. Compiling...`);
+              const contractPath = path.join(contractsDir, solFile);
+              const source = fs.readFileSync(contractPath, "utf8");
+
+              // পিওর সলিডিটি স্ট্যান্ডার্ড ইনপুট কম্পাইলেশন
+              const input = {
+                  language: "Solidity",
+                  sources: { [solFile]: { content: source } },
+                  settings: { outputSelection: { "*": { "*": ["abi", "evm.bytecode.object"] } } }
+              };
+
+              const output = JSON.parse(solc.compile(JSON.stringify(input)));
+              
+              if (output.errors) {
+                  output.errors.forEach(err => console.log(err.formattedMessage));
+              }
+
+              const contractName = Object.keys(output.contracts[solFile])[0];
+              const contractData = output.contracts[solFile][contractName];
+
+              const abi = contractData.abi;
+              const bytecode = contractData.evm.bytecode.object;
+
+              if (!bytecode || bytecode === "") {
+                  throw new Error("Compilation failed, no bytecode generated.");
+              }
+
+              console.log(`⚡ Compilation successful! Deploying contract: ${contractName}...`);
+              const factory = new ethers.ContractFactory(abi, bytecode, wallet);
+              const contract = await factory.deploy();
+
+              console.log("⏳ Waiting for network confirmation...");
+              await contract.waitForDeployment();
+
+              console.log("====================================");
+              console.log("🎉 SUCCESS! Smart Contract Deployed!");
+              console.log("Contract Address:", await contract.getAddress());
+              console.log("====================================");
           }
 
           main().catch((error) => {
-            console.error("Deployment failed:", error);
-            process.exitCode = 1;
+              console.error("❌ Deployment failed:", error);
+              process.exitCode = 1;
           });
           EOF
-          
-          NODE_OPTIONS="--experimental-default-type=module" node standalone-deploy.js
+
+          # নোডকে জোরপূর্বক CommonJS টাইপে রান করানো হচ্ছে যেন প্রজেক্ট টাইপ কনফ্লিক্ট না করে
+          node engine-deploy.js
