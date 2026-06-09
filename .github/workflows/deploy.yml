@@ -22,8 +22,9 @@ jobs:
 
       - name: Deploy via Universal Bridge Engine
         env:
+          # আপনার গитহাব সিক্রেটসের সাথে নামের অমিল দূর করতে সরাসরি ভ্যালু ম্যাপিং
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          ARC_RPC_URL: ${{ secrets.RPC_URL }}
+          RPC_URL: ${{ secrets.RPC_URL }}
         run: |
           cat << 'EOF' > universal-deploy.js
           const { ethers } = require("ethers");
@@ -32,13 +33,17 @@ jobs:
           const path = require("path");
 
           async function main() {
-              // RPC URL-এর ফরম্যাট এবং প্রোটোকল অটো-ফিক্স করার লজিক (unsupported protocol এরর দূর করতে)
-              let rpcUrl = process.env.ARC_RPC_URL ? process.env.ARC_RPC_URL.trim() : "";
-              if (rpcUrl && !rpcUrl.startsWith("http://") && !rpcUrl.startsWith("https://")) {
-                  rpcUrl = "https://" + rpcUrl;
+              // সরাসরি সিক্রেটস থেকে আসা ইউআরএল রিড করা হচ্ছে
+              let rpcUrl = process.env.RPC_URL ? process.env.RPC_URL.trim() : "";
+              
+              if (!rpcUrl) {
+                  throw new Error("RPC_URL is missing in GitHub Secrets! Please check your repository settings.");
               }
 
-              if (!rpcUrl) throw new Error("RPC_URL is missing in GitHub Secrets!");
+              // কোনো কারণে লিংকের শুরুতে http/https মিসিং থাকলে অটো-ফিক্স
+              if (!rpcUrl.startsWith("http://") && !rpcUrl.startsWith("https://")) {
+                  rpcUrl = "https://" + rpcUrl;
+              }
 
               const provider = new ethers.JsonRpcProvider(rpcUrl);
               let rawKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
@@ -52,7 +57,7 @@ jobs:
               const files = fs.readdirSync(contractsDir);
               const solFile = files.find(f => f.endsWith(".sol"));
               
-              if (!solFile) throw new Error("No Solidity contract file found!");
+              if (!solFile) throw new Error("No Solidity contract file found in contracts directory!");
               console.log("📦 Compiling file directly:", solFile);
 
               const source = fs.readFileSync(path.join(contractsDir, solFile), "utf8");
@@ -69,17 +74,17 @@ jobs:
               const abi = contractData.abi;
               const bytecode = contractData.evm.bytecode.object;
 
-              console.log("⚡ Deploying Contract to Arc Testnet:", contractName);
+              console.log("⚡ Deploying Contract to Network:", contractName);
               const factory = new ethers.ContractFactory(abi, bytecode, wallet);
               
-              // গ্যাস লিমিট অটো-সেট করে দেওয়া হচ্ছে যাতে নেটওয়ার্ক ফিডব্যাকে আটকে না যায়
-              const contract = await factory.deploy({ gasLimit: 3000000 });
+              // গ্যাস ট্র্যাকিং অটোমেটেড করা হলো যেন ফেইল না হয়
+              const contract = await factory.deploy();
 
               console.log("⏳ Syncing with network...");
               await contract.waitForDeployment();
 
               console.log("====================================");
-              console.log("🎉 SUCCESS! Contract Successfully Live!");
+              console.log("🎉 SUCCESS! Smart Contract Live!");
               console.log("Contract Address:", await contract.getAddress());
               console.log("====================================");
           }
