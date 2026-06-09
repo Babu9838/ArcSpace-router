@@ -14,21 +14,16 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Dependencies
+      - name: Install Base Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Fixed ESM Configuration
-        # গিটহাব নিজেই hardhat.config.js ফাইলটিকে সাময়িকভাবে .cjs বানিয়ে দেবে
-        # এবং প্রজেক্টকে মডিউল হিসেবে সেট করবে, যাতে কোনো ফাইল মিসিং বা মডিউল এরর না আসে
-        run: |
-          npm pkg set type="module"
-          if [ -f "hardhat.config.js" ]; then
-            mv hardhat.config.js hardhat.config.cjs
-          fi
+      - name: Install Missing Toolbox
+        # এরর দূর করার জন্য হার্ডহ্যাটের লেটেস্ট টুলবক্স এবং প্লাগইনগুলো গিটহাবে রান টাইমে ইনস্টল করে নেওয়া হচ্ছে
+        run: npm install --save-dev @nomicfoundation/hardhat-toolbox @nomicfoundation/hardhat-ignition-ethers dotenv
 
-      - name: Deploy Contract
+      - name: Deploy Contract One-Click Fix
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           ARC_RPC_URL: ${{ secrets.RPC_URL }}
-        # কনফিগ ফাইলের নতুন পাথ সরাসরি নির্দিষ্ট করে দেওয়া হলো যেন একবারে রান হয়
-        run: npx hardhat run scripts/deploy.js --network arc_testnet --config hardhat.config.cjs
+        # কোনো মডিউল বা পাথ এরর ছাড়াই নোডের এক্সপেরিমেন্টাল মডিউল অন করে সরাসরি রান করা হচ্ছে
+        run: NODE_OPTIONS="--experimental-default-type=module" npx hardhat run scripts/deploy.js --network arc_testnet
