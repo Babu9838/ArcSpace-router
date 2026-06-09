@@ -23,8 +23,6 @@ jobs:
       - name: Deploy via Universal Bridge Engine
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          # ⚠️ এখানে ইনভার্টেড কমার ("") ভেতরে আপনার আসল টেস্টনেট RPC URL-টি সরাসরি বসিয়ে দিন
-          "https://rpc.testnet.arc.network"
         run: |
           cat << 'EOF' > universal-deploy.js
           const { ethers } = require("ethers");
@@ -33,15 +31,11 @@ jobs:
           const path = require("path");
 
           async function main() {
-              let rpcUrl = process.env.RPC_URL ? process.env.RPC_URL.trim() : "";
+              // ⚠️ ঠিক নিচের লাইনে সিঙ্গেল কোটের ('https://rpc.testnet.arc.network') ভেতরে আপনার আসল RPC URL পেস্ট করুন
+              let rpcUrl = 'https://rpc.arc-testnet.your-link-here';
               
-              if (!rpcUrl || rpcUrl.includes("আপনার_টেস্টনেটের_RPC_লিংক")) {
-                  throw new Error("RPC_URL is missing or placeholder not replaced! Please put your actual URL link inside deploy.yml.");
-              }
-
-              // লিংকের শুরুতে কোনো কারণে http/https না থাকলে অটো-অ্যাড করার লজিক
-              if (!rpcUrl.startsWith("http://") && !rpcUrl.startsWith("https://")) {
-                  rpcUrl = "https://" + rpcUrl;
+              if (rpcUrl.includes("your-link-here")) {
+                  throw new Error("Please replace the placeholder with your actual RPC URL link!");
               }
 
               const provider = new ethers.JsonRpcProvider(rpcUrl);
